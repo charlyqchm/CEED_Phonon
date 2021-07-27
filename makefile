@@ -1,11 +1,14 @@
-CC := g++
-CFLAGS := -O3
+CC := nvcc
+CFLAGS := -O3 -lcublas -lblas -llapack --gpu-architecture=sm_50
 
-objects    = CEED_phon_subs.o CEED_phon_main.o
+objects    = cuda_subs.o CEED_phon_subs.o CEED_phon_main.o
 executable = program.out
 
 $(executable): $(objects)
 			$(CC) -o $@ $^ ${CFLAGS}
+
+cuda_subs.o: cuda_subs.cu cuda_subs.h
+			$(CC) -o $@ -c $< ${CFLAGS}
 
 CEED_phon_subs.o: CEED_phon_subs.cpp CEED_phon_subs.h
 			$(CC) -o $@ -c $< ${CFLAGS}
