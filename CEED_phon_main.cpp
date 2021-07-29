@@ -8,14 +8,17 @@ int main(){
    UNINT                      np_levels;
    UNINT                      n_tot;
    UNINT                      n_bath;
+   int                        t_steps;
+   double                     dt;
+   double                     k0_inter = 0.0e0; //interaction constant bath-phonons
    vector<double>             el_ener_vec;
    vector<double>             fb_vec;
    vector<double>             ki_vec;      //bath string constants
    vector<double>             xi_vec;      //bath coordinates
+   vector<double>             vi_vec;      //bath coordinates
    vector<double>             w_phon_vec;
    vector<double>             mass_phon_vec;
    vector<double>             Fcoup_mat;
-   vector<double>             dVdX_mat;
    vector<double>             mu_elec_mat;
    vector<double>             mu_phon_mat;
    vector<double>             v_bath_mat;
@@ -25,12 +28,10 @@ int main(){
    vector<double>             eigen_coef;
    vector<double>             eigen_coefT;
    vector < complex<double> > H_tot;
+   vector < complex<double> > dVdX_mat;
    vector < complex<double> > mu_tot;
-   vector < complex<double> > rho_elec;
    vector < complex<double> > rho_phon;
    vector < complex<double> > rho_tot;
-   vector < complex<double> > rho_new;
-   double                     k0_inter = 0.0e0; //interaction constant bath-phonons
 
    ofstream output_test;
 
@@ -38,12 +39,11 @@ int main(){
                mass_phon_vec, fb_vec);
 
    init_matrix(H_tot, H0_mat, Hcoup_mat, Fcoup_mat, mu_elec_mat, mu_phon_mat,
-               v_bath_mat, mu_tot, dVdX_mat, ki_vec, xi_vec, eigen_E,
-               eigen_coef, eigen_coefT, rho_elec, rho_phon, rho_tot,
-               rho_new, n_tot, n_el, n_phon, np_levels, n_bath);
+               v_bath_mat, mu_tot, dVdX_mat, ki_vec, xi_vec, vi_vec, eigen_E,
+               eigen_coef, eigen_coefT, rho_phon, rho_tot,
+               n_tot, n_el, n_phon, np_levels, n_bath);
 
-   read_matrix_inputs(n_el, n_phon, np_levels, n_tot, Fcoup_mat, mu_elec_mat,
-                      dVdX_mat);
+   read_matrix_inputs(n_el, n_phon, np_levels, n_tot, Fcoup_mat, mu_elec_mat);
 
    build_matrix(H_tot, H0_mat, Hcoup_mat, mu_phon_mat, dVdX_mat, Fcoup_mat,
                 mu_elec_mat, mu_tot, el_ener_vec, w_phon_vec, mass_phon_vec,
@@ -58,13 +58,13 @@ int main(){
 
    build_rho_matrix(rho_tot, eigen_coef, eigen_coefT, n_tot);
 
-
-
    init_cuda(& *H_tot.begin(), & *mu_tot.begin(), & *v_bath_mat.begin(),
-             & *fb_vec.begin(), & *rho_tot.begin(), n_el, n_phon, n_tot);
+             & *fb_vec.begin(), & *xi_vec.begin(), & *vi_vec.begin(),
+             & *ki_vec.begin(), & *rho_tot.begin(), & *rho_phon.begin(),
+             & *dVdX_mat.begin(), n_el, n_phon, np_levels, n_tot, n_bath);
 
 //TESTING CUDA
-   commute_cuda(dev_Htot1, dev_rhotot, dev_rhonew, n_tot);
+   // commute_cuda(dev_Htot1, dev_rhotot, dev_rhonew, n_tot);
 
    getingmat(& *H_tot.begin(), dev_rhonew, n_tot);
 

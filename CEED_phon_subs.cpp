@@ -52,7 +52,7 @@ void read_inputs(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
 //##############################################################################
 void read_matrix_inputs(UNINT& n_el, UNINT& n_phon, UNINT& np_levels,
                         UNINT& n_tot, vector<double>& Fcoup_mat,
-                        vector<double>& mu_elec_mat, vector<double>& dVdX_mat){
+                        vector<double>& mu_elec_mat){
 
    int      n_inter;
    int      ind_i;
@@ -100,13 +100,14 @@ void init_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
                  vector<double>& mu_elec_mat, vector<double>& mu_phon_mat,
                  vector<double>& v_bath_mat,
                  vector < complex<double> >& mu_tot,
-                 vector<double>& dVdX_mat, vector<double>& ki_vec,
-                 vector<double>& xi_vec, vector<double>& eigen_E,
+                 vector < complex<double> >& dVdX_mat,
+                 vector<double>& ki_vec,
+                 vector<double>& xi_vec,
+                 vector<double>& vi_vec,
+                 vector<double>& eigen_E,
                  vector<double>& eigen_coef, vector<double>& eigen_coefT,
-                 vector < complex<double> >& rho_elec,
                  vector < complex<double> >& rho_phon,
                  vector < complex<double> >& rho_tot,
-                 vector < complex<double> >& rho_new,
                  UNINT n_tot, UNINT n_el, UNINT n_phon, UNINT np_levels,
                  UNINT n_bath){
 
@@ -121,7 +122,6 @@ void init_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
       mu_tot.push_back((0.0e0, 0.0e0));
       H_tot.push_back((0.0e0, 0.0e0));
       rho_tot.push_back((0.0e0, 0.0e0));
-      rho_new.push_back((0.0e0, 0.0e0));
    }
 
    for(int ii=0; ii<n_tot; ii++){
@@ -129,17 +129,17 @@ void init_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
    }
 
    for(int ii=0; ii<(n_el*n_el); ii++){
-      rho_elec.push_back((0.0e0, 0.0e0));
       Fcoup_mat.push_back(0.0e0);
    }
 
    for(int ii=0; ii<(n_phon*n_phon*np_levels*np_levels); ii++){
-      dVdX_mat.push_back(0.0e0);
+      dVdX_mat.push_back((0.0e0, 0.0e0));
       rho_phon.push_back((0.0e0, 0.0e0));
    }
 
    for(int ii=0; ii<n_bath; ii++){
       xi_vec.push_back(0.0e0);
+      vi_vec.push_back(0.0e0);
       ki_vec.push_back(0.0e0);
    }
 
@@ -187,7 +187,8 @@ void insert_eterm_in_bigmatrix(int ind_i, int ind_j , int n_el, int n_tot,
 //##############################################################################
 void build_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
                   vector<double>& Hcoup_mat, vector<double>& mu_phon_mat,
-                  vector<double>& dVdX_mat, vector<double>& Fcoup_mat,
+                  vector < complex<double> >& dVdX_mat,
+                  vector<double>& Fcoup_mat,
                   vector<double>& mu_elec_mat,
                   vector < complex<double> >& mu_tot,
                   vector<double>& el_ener_vec, vector<double>& w_phon_vec,
@@ -226,7 +227,7 @@ void build_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
    for (int jj=0; jj<ntemp; jj++){
       int ind1  = ii + jj*n_tot;
       int ind2  = ii + jj*ntemp;
-      dVdX_mat[ind2] = k0_inter*mu_phon_mat[ind1];
+      dVdX_mat[ind2] = complex<double> (k0_inter*mu_phon_mat[ind1], 0.0e0);
       for (int k1=0; k1<n_el; k1++){
       for (int k2=0; k2<n_el; k2++){
          int ind3 = (ii + k1*ntemp) + (jj + k2*ntemp)*n_tot;
