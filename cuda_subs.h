@@ -65,7 +65,9 @@ double get_Qforces_cuda(cuDoubleComplex *dev_rhoin ,double *fb_vec,
 void runge_kutta_propagator_cuda(double a_ceed, double dt, double Efield,
                                  double *fb_vec, int tt,
                                  UNINT n_el, UNINT n_phon, UNINT np_levels,
-                                 UNINT n_tot);
+                                 UNINT n_tot, UNINT n_bath);
 
+void calcrhophon(cuDoubleComplex *dev_rhoin, int n_el, int n_phon,
+                 int np_levels, int n_tot);
 void getingmat(complex<double> *matA, cuDoubleComplex *dev_A, int n_tot);
 #endif

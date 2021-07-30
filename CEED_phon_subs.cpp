@@ -2,8 +2,10 @@
 
 //##############################################################################
 void read_inputs(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
-                 UNINT& n_bath, vector<double>& el_ener_vec,
-                 vector<double>& w_phon_vec, vector<double>& mass_phon_vec,
+                 UNINT& n_bath, int& t_steps, double& dt, double& k0_inter,
+                 double& Efield, double& a_ceed, vector<double>& el_ener_vec,
+                 vector<double>& w_phon_vec,
+                 vector<double>& mass_phon_vec,
                  vector<double>& fb_vec){
 
    ifstream inputf;
@@ -44,6 +46,16 @@ void read_inputs(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
       inputf>> mass_phon;
       mass_phon_vec.push_back(mass_phon);
    }
+
+   double k_ceed;
+
+   inputf>> k0_inter;
+   inputf>> k_ceed;
+   inputf>> Efield;
+   inputf>> t_steps;
+   inputf>> dt;
+
+   a_ceed = a_ceed * k_ceed;
 
    inputf.close();
 
@@ -153,7 +165,7 @@ void build_rho_matrix(vector < complex<double> >& rho_tot,
    vector<double> rho_real(n_tot*n_tot, 0.0e0);
    vector<double> auxmat1(n_tot*n_tot, 0.0e0);
 
-   rho_real[1+1*n_tot] = 2.0e0;
+   rho_real[0+0*n_tot] = 1.0e0;
 
    matmul_blas(rho_real, eigen_coefT, auxmat1, n_tot);
    matmul_blas(eigen_coef, auxmat1, rho_real, n_tot);
@@ -171,8 +183,8 @@ void insert_eterm_in_bigmatrix(int ind_i, int ind_j , int n_el, int n_tot,
 
    for (int ii=0; ii<n_phon; ii++){
    for (int jj=0; jj<np_levels; jj++){
-      int ind1 = jj + ii*n_phon + ind_i*n_phon*np_levels;
-      int ind2 = jj + ii*n_phon + ind_j*n_phon*np_levels;
+      int ind1 = jj + ii*np_levels + ind_i*n_phon*np_levels;
+      int ind2 = jj + ii*np_levels + ind_j*n_phon*np_levels;
       int ind3 = ind1 + (ind2 * n_tot);
       int ind4 = ind2 + (ind1 * n_tot);
 
@@ -199,12 +211,12 @@ void build_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
    for (int jj=0; jj<n_phon; jj++){
       double mwj = w_phon_vec[jj] * mass_phon_vec[jj];
       for (int kk=0; kk<np_levels; kk++){
-         int ind1 = kk + jj*n_phon + ii*n_phon*np_levels;
+         int ind1 = kk + jj*np_levels + ii*n_phon*np_levels;
          int ind2 = ind1 + (ind1 * n_tot);
          H0_mat[ind2] = el_ener_vec[ii] + w_phon_vec[jj]*(0.5e0 + kk);
       }
       for (int kk=0; kk<np_levels-1; kk++){
-         int ind1   = kk + jj*n_phon + ii*n_phon*np_levels;
+         int ind1   = kk + jj*np_levels + ii*n_phon*np_levels;
          int ind2   = ind1 + ((ind1+1) * n_tot);
          int ind3   = ind1+1 + (ind1 * n_tot);
          double Mij = sqrt((kk+1.0)/(2.0*mwj));
@@ -222,15 +234,15 @@ void build_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
    }
    }
 
-   int ntemp = np_levels*n_phon;
-   for (int ii=0; ii<ntemp; ii++){
-   for (int jj=0; jj<ntemp; jj++){
+   int n1 = np_levels*n_phon;
+   for (int ii=0; ii<n1; ii++){
+   for (int jj=0; jj<n1; jj++){
       int ind1  = ii + jj*n_tot;
-      int ind2  = ii + jj*ntemp;
+      int ind2  = ii + jj*n1;
       dVdX_mat[ind2] = complex<double> (k0_inter*mu_phon_mat[ind1], 0.0e0);
       for (int k1=0; k1<n_el; k1++){
       for (int k2=0; k2<n_el; k2++){
-         int ind3 = (ii + k1*ntemp) + (jj + k2*ntemp)*n_tot;
+         int ind3 = (ii + k1*n1) + (jj + k2*n1)*n_tot;
          Hcoup_mat[ind3] = -Fcoup_mat[k1 + k2*n_el] * mu_phon_mat[ind1];
       }
       }

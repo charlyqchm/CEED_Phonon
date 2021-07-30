@@ -37,10 +37,11 @@ __global__ void update_H_tot(cuDoubleComplex *H_out, cuDoubleComplex *H_in,
 
    int ind  = threadIdx.x + blockIdx.x * blockDim.x;
    int dim2 = n_tot * n_tot;
-   int i1   = ind / n_tot;
-   int i_e  = i1 / (n_phon*np_levels);
 
    if (ind < dim2){
+      int i1   = ind / n_tot;
+      int i_e  = i1 / (n_phon*np_levels);
+
       if ( ind == i1 + i1*n_tot ){
          aux1       = make_cuDoubleComplex(fb_vec[i_e] * sum_xi, 0.0e0);
          H_out[ind] = cuCadd(H_in[ind],aux1);
@@ -54,7 +55,6 @@ __global__ void update_H_tot(cuDoubleComplex *H_out, cuDoubleComplex *H_in,
       aux3 = cuCadd(aux1,aux2);
       H_out[ind] = cuCadd(H_out[ind], aux3);
    }
-
    return;
 }
 //##############################################################################
@@ -65,11 +65,9 @@ __global__ void get_diag(cuDoubleComplex *matA, cuDoubleComplex *vecA,
    int ind  = threadIdx.x + blockIdx.x * blockDim.x;
    int dim2 = n_tot  * n_tot;
    int i1   = ind / n_tot;
-
    if ((ind == i1 + i1*n_tot) && (ind < dim2)){
       vecA[i1] = matA[ind];
    }
-
    return;
 }
 //##############################################################################
@@ -86,19 +84,16 @@ __global__ void build_rhophon(cuDoubleComplex *rho_tot,
       int ii = ind1 - jj * dim1;
       rho_phon[ind1] = make_cuDoubleComplex(0.0e0, 0.0e0);
       for (int kk=0; kk<n_el; kk++){
-         int dim3 = n_tot * n_tot;
-         int ind2 = (ii + kk * dim1) + (jj + kk * dim1) * dim3;
+         int ind2 = (ii + kk * dim1) + (jj + kk * dim1) * n_tot;
          rho_phon[ind1] = cuCadd(rho_tot[ind2], rho_phon[ind1]);
       }
    }
-
    return;
 }
 //##############################################################################
 __global__ void move_x(double *xi_vec, double *vi_vec, double *xf_vec,
                            double dt, int n_bath){
    int ind        = threadIdx.x + blockIdx.x * blockDim.x;
-
    if (ind < n_bath){
       xf_vec[ind]  = xi_vec[ind] + vi_vec[ind] * dt;
    }
@@ -111,12 +106,9 @@ __global__ void get_partial_sum(double *xi_vec, double *sum_vec, int n_bath){
    int cacheIndex = threadIdx.x;
 
    cache[cacheIndex] = 0.0e0;
-
    if (ind < n_bath){
       cache[cacheIndex] = xi_vec[ind];
-
       __syncthreads();
-
       int ii = blockDim.x/2;
       while (ii != 0) {
          if (cacheIndex < ii){
@@ -138,7 +130,7 @@ __global__ void move_v(double *xi_vec, double *vi_vec, double *ki_vec,
 
    int ind  = threadIdx.x + blockIdx.x * blockDim.x;
    if (ind < n_bath){
-      double ai = - ki_vec[ind] + qforce;
+      double ai = - ki_vec[ind] * xi_vec[ind] + qforce;
       vf_vec[ind]  = vi_vec[ind] + ai * dt;
    }
 }
@@ -147,7 +139,6 @@ __global__ void update_mat(cuDoubleComplex *matA, cuDoubleComplex *matB,
                            int dim){
    int ind  = threadIdx.x + blockIdx.x * blockDim.x;
    int dim2 = dim * dim;
-
    if (ind < dim2){
       matA[ind] = matB[ind];
    }
@@ -156,7 +147,6 @@ __global__ void update_mat(cuDoubleComplex *matA, cuDoubleComplex *matB,
 //##############################################################################
 __global__ void update_vec(double *vecA, double *vecB, int dim){
    int ind  = threadIdx.x + blockIdx.x * blockDim.x;
-
    if (ind < dim){
       vecA[ind] = vecB[ind];
    }
@@ -403,8 +393,8 @@ void runge_kutta_propagator_cuda(double a_ceed, double dt, double Efield,
                                  UNINT n_phon, UNINT np_levels,
                                  UNINT n_tot, UNINT n_bath){
 
-   const cuDoubleComplex alf1 = make_cuDoubleComplex(0.0e0, 0.5*dt);
-   const cuDoubleComplex alf2 = make_cuDoubleComplex(0.0e0, dt);
+   const cuDoubleComplex alf1 = make_cuDoubleComplex(0.0e0, -0.5*dt);
+   const cuDoubleComplex alf2 = make_cuDoubleComplex(0.0e0, -dt);
    const cuDoubleComplex alf3 = make_cuDoubleComplex(1.0e0, 0.0e0);
    double *dev_partialvec;
    double  partialvec[Ncores2];
@@ -487,6 +477,13 @@ void runge_kutta_propagator_cuda(double a_ceed, double dt, double Efield,
 
    cudaFree(dev_partialvec);
 
+   return;
+}
+//##############################################################################
+void calcrhophon(cuDoubleComplex *dev_rhoin, int n_el, int n_phon,
+                 int np_levels, int n_tot){
+   build_rhophon<<<Ncores1, Nthreads>>>(dev_rhoin, dev_rhophon, n_el , n_phon,
+                                        np_levels, n_tot);
    return;
 }
 //##############################################################################

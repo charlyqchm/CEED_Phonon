@@ -28,7 +28,8 @@ extern "C" {
 
 
 void read_inputs(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
-                 UNINT& n_bath, vector<double>& el_ener_vec,
+                 UNINT& n_bath, int& t_steps, double& dt, double& k0_inter,
+                 double& Efield, double& a_ceed, vector<double>& el_ener_vec,
                  vector<double>& w_phon_vec, vector<double>& mass_phon_vec,
                  vector<double>& fb_vec);
 
