@@ -76,4 +76,19 @@ void eigenval_elec_calc(vector<double>& mat, vector<double>& eigenval,
 
 void matmul_blas(vector<double>& matA, vector<double>& matB,
                  vector<double>& matC, int ntotal);
+
+double rand_normal();
+
+double rand_gaussian(double mean, double stdev);
+
+void init_bath(UNINT n_bath, double temp,double bmass, double ki,
+   vector<double>& xi_vec,
+   vector<double>& vi_vec,
+   vector<double>& ki_vec);
+
+void init_bath(UNINT n_bath, double temp,double bmass, double ki, double span,
+      vector<double>& xi_vec,
+      vector<double>& vi_vec,
+      vector<double>& ki_vec);
+
 #endif

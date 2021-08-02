@@ -295,3 +295,46 @@ void matmul_blas(vector<double>& matA, vector<double>& matB,
    return;
 }
 //##############################################################################
+double drand(){
+  return (rand()+1.0)/(RAND_MAX+1.0);
+}
+//##############################################################################
+double rand_normal(){
+  return sqrt(-2 * log(drand())) * cos(2*M_PI*drand());
+}
+//##############################################################################
+double rand_gaussian(double mean, double stdev){
+  return mean + stdev * rand_normal();
+}
+//##############################################################################
+void init_bath(UNINT n_bath, double temp,double bmass, double ki,
+   vector<double>& xi_vec,
+   vector<double>& vi_vec,
+   vector<double>& ki_vec){
+
+   double stdev = sqrt(temp/bmass);
+   double bfreq = sqrt(bmass/ki);
+
+   for(int ii=0; ii<n_bath; ii++){
+      ki_vec[ii] = ki;
+      vi_vec[ii] = rand_gaussian(0, stdev);
+      xi_vec[ii] = rand_gaussian(0, stdev) * bfreq;
+   }
+   return;
+}
+//##############################################################################
+void init_bath(UNINT n_bath, double temp, double bmass, double ki, double span,
+   vector<double>& xi_vec,
+   vector<double>& vi_vec,
+   vector<double>& ki_vec){
+
+   double stdev = sqrt(temp/bmass);
+
+   for(int ii=0; ii<n_bath; ii++){
+      ki_vec[ii] = ki - 0.5 * span + drand() * span;
+      vi_vec[ii] = rand_gaussian(0, stdev);
+      xi_vec[ii] = rand_gaussian(0, stdev) * sqrt(bmass/ki_vec[ii]);
+   }
+   return;
+}
+//##############################################################################
