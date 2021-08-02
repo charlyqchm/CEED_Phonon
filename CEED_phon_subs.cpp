@@ -203,6 +203,7 @@ void build_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
                   vector < complex<double> >& dVdX_mat,
                   vector<double>& Fcoup_mat,
                   vector<double>& mu_elec_mat,
+                  vector<double>& v_bath_mat,
                   vector < complex<double> >& mu_tot,
                   vector<double>& el_ener_vec, vector<double>& w_phon_vec,
                   vector<double>& mass_phon_vec, double k0_inter, UNINT n_el,
@@ -251,9 +252,10 @@ void build_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
    }
 
    for (int ii=0; ii<n_tot*n_tot; ii++){
-      H0_mat[ii]   += Hcoup_mat[ii];
-      H_tot[ii]     = complex<double> (H0_mat[ii], 0.0e0);
-      mu_tot[ii]    = complex<double> (mu_elec_mat[ii]+mu_phon_mat[ii], 0.0e0);
+      v_bath_mat[ii] = k0_inter * mu_phon_mat[ii]; 
+      H0_mat[ii]    += Hcoup_mat[ii];
+      H_tot[ii]      = complex<double> (H0_mat[ii], 0.0e0);
+      mu_tot[ii]     = complex<double> (mu_elec_mat[ii]+mu_phon_mat[ii], 0.0e0);
    }
 
    return;

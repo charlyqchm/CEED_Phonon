@@ -50,8 +50,8 @@ int main(){
    read_matrix_inputs(n_el, n_phon, np_levels, n_tot, Fcoup_mat, mu_elec_mat);
 
    build_matrix(H_tot, H0_mat, Hcoup_mat, mu_phon_mat, dVdX_mat, Fcoup_mat,
-                mu_elec_mat, mu_tot, el_ener_vec, w_phon_vec, mass_phon_vec,
-                k0_inter, n_el, n_phon, np_levels, n_tot);
+                mu_elec_mat, v_bath_mat, mu_tot, el_ener_vec, w_phon_vec,
+                mass_phon_vec, k0_inter, n_el, n_phon, np_levels, n_tot);
 
    eigenval_elec_calc(H0_mat, eigen_E, eigen_coef, n_tot);
    for(int jj=0; jj < n_tot; jj++){
