@@ -1,12 +1,12 @@
 #include "CEED_phon_subs.h"
+#include "cuda_subs.h"
 
 //##############################################################################
 void read_inputs(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
-                 UNINT& n_bath, int& t_steps, double& dt, double& k0_inter,
-                 double& Efield, double& a_ceed, vector<double>& el_ener_vec,
-                 vector<double>& w_phon_vec,
-                 vector<double>& mass_phon_vec,
-                 vector<double>& fb_vec){
+                 UNINT& n_bath, int& t_steps, int& print_t, double& dt,
+                 double& k0_inter, double& Efield, double& a_ceed,
+                 vector<double>& el_ener_vec, vector<double>& w_phon_vec,
+                 vector<double>& mass_phon_vec, vector<double>& fb_vec){
 
    ifstream inputf;
 
@@ -54,6 +54,7 @@ void read_inputs(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
    inputf>> Efield;
    inputf>> t_steps;
    inputf>> dt;
+   inputf>> print_t;
 
    a_ceed = a_ceed * k_ceed;
 
@@ -334,6 +335,30 @@ void init_bath(UNINT n_bath, double temp, double bmass, double ki, double span,
       ki_vec[ii] = ki - 0.5 * span + drand() * span;
       vi_vec[ii] = rand_gaussian(0, stdev);
       xi_vec[ii] = rand_gaussian(0, stdev) * sqrt(bmass/ki_vec[ii]);
+   }
+   return;
+}
+//##############################################################################
+void init_output(ofstream* outfile){
+    outfile[0].open("energy.out");
+    outfile[1].open("dipole.out");
+    outfile[2].open("time.out");
+    outfile[3].open("rhotrace.out");
+
+    return;
+}
+//##############################################################################
+void write_output(double dt, int tt, int print_t, UNINT n_tot,
+                  ofstream* outfile){
+
+   double Ener, mu, tr_rho;
+
+   if(tt%print_t==0){
+      getting_printing_info( & Ener, & mu, & tr_rho, n_tot);
+      outfile[0]<<Ener<<endl;
+      outfile[1]<<mu<<endl;
+      outfile[2]<< tt*dt <<endl;
+      outfile[3]<<tr_rho<<endl;
    }
    return;
 }

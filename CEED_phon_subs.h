@@ -28,10 +28,10 @@ extern "C" {
 
 
 void read_inputs(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
-                 UNINT& n_bath, int& t_steps, double& dt, double& k0_inter,
-                 double& Efield, double& a_ceed, vector<double>& el_ener_vec,
-                 vector<double>& w_phon_vec, vector<double>& mass_phon_vec,
-                 vector<double>& fb_vec);
+                 UNINT& n_bath, int& t_steps, int& print_t, double& dt,
+                 double& k0_inter, double& Efield, double& a_ceed,
+                 vector<double>& el_ener_vec, vector<double>& w_phon_vec,
+                 vector<double>& mass_phon_vec, vector<double>& fb_vec);
 
 void read_matrix_inputs(UNINT& n_el, UNINT& n_phon, UNINT& np_levels,
                         UNINT& n_tot, vector<double>& Fcoup_mat,
@@ -91,4 +91,8 @@ void init_bath(UNINT n_bath, double temp,double bmass, double ki, double span,
       vector<double>& vi_vec,
       vector<double>& ki_vec);
 
+void init_output(ofstream* outfile);
+
+void write_output(double dt, int tt, int print_t, UNINT n_tot,
+                  ofstream* outfile);
 #endif

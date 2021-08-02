@@ -42,6 +42,8 @@ __global__ void update_H_tot(cuDoubleComplex *H_out, cuDoubleComplex *H_in,
       int i1   = ind / n_tot;
       int i_e  = i1 / (n_phon*np_levels);
 
+      H_out[ind] = make_cuDoubleComplex(0.0e0,0.0e0);
+
       if ( ind == i1 + i1*n_tot ){
          aux1       = make_cuDoubleComplex(fb_vec[i_e] * sum_xi, 0.0e0);
          H_out[ind] = cuCadd(H_in[ind],aux1);
@@ -329,8 +331,8 @@ void include_Hceed_cuda(cuDoubleComplex *dev_Hout, cuDoubleComplex *dev_Hin,
    cudaMalloc((void**) &dev_aux2, dim2 * sizeof(cuDoubleComplex));
    cudaMalloc((void**) &dev_Hceed, dim2 * sizeof(cuDoubleComplex));
 
-   commute_cuda(dev_Hin, dev_mu, dev_Hceed, n_tot, alf);
-   commute_cuda(dev_Hin, dev_Hceed, dev_aux1, n_tot, alf);
+   commute_cuda(dev_mu, dev_Hin, dev_Hceed, n_tot, alf);
+   commute_cuda(dev_Hceed, dev_Hin, dev_aux1, n_tot, alf);
    matmul_cublas(dev_rhoin, dev_aux1, dev_aux2, n_tot);
 
    dmu2 = get_trace_cuda(dev_aux2, n_tot);
@@ -402,6 +404,7 @@ void runge_kutta_propagator_cuda(double a_ceed, double dt, double Efield,
    double  dth    = 0.5e0 * dt;
    double Efield_t;
    double qforce;
+   double time = dt * tt;
 
    cudaMalloc((void**) &dev_partialvec, Ncores2*sizeof(double));
 
@@ -417,7 +420,7 @@ void runge_kutta_propagator_cuda(double a_ceed, double dt, double Efield,
    }
    //---------------------------------------------------------------------------
 
-   Efield_t = Efield; // we need to give shape to the electric field;
+   Efield_t = Efield * exp(-pow(((time-10.0)/0.2),2.0));
 
    //Building the new Hamiltonian at time = t ----------------------------------
    update_H_tot<<<Ncores1, Nthreads>>>(dev_Htot2, dev_Htot1, dev_mutot,
@@ -429,12 +432,13 @@ void runge_kutta_propagator_cuda(double a_ceed, double dt, double Efield,
    //---------------------------------------------------------------------------
 
    //Calculating rho(t+dt/2) using LvN------------------------------------------
-   commute_cuda(dev_Htot3, dev_rhotot, dev_Drho, n_tot, alf1);
-   matadd_cublas(dev_rhotot, dev_Drho, dev_rhoaux, n_tot, alf3, alf3);
+   commute_cuda(dev_Htot3, dev_rhotot, dev_Drho, n_tot, alf3);
+   matadd_cublas(dev_rhotot, dev_Drho, dev_rhoaux, n_tot, alf3, alf1);
    //---------------------------------------------------------------------------
    //Calculating x(t+dt/2) and v(t+dt/2) using the Quantum forces --------------
    qforce = get_Qforces_cuda(dev_rhotot , fb_vec, n_el, n_phon, np_levels,
                              n_tot);
+   qforce = 0.0e0;
    move_x<<<Ncores2, Nthreads>>>(dev_xi, dev_vi, dev_xh, dth, n_bath);
 
 
@@ -453,6 +457,8 @@ void runge_kutta_propagator_cuda(double a_ceed, double dt, double Efield,
       sum_xi += partialvec[ii];
    }
 
+   Efield_t = Efield * exp(-pow(((time+dth-10.0)/0.2),2.0));
+
    update_H_tot<<<Ncores1, Nthreads>>>(dev_Htot2, dev_Htot1, dev_mutot,
                                        dev_vbath, dev_fb, sum_xi, Efield_t,
                                        n_el, n_phon, np_levels, n_tot);
@@ -460,11 +466,12 @@ void runge_kutta_propagator_cuda(double a_ceed, double dt, double Efield,
    include_Hceed_cuda(dev_Htot3, dev_Htot2, dev_mutot, dev_rhoaux, a_ceed,
                       n_tot);
 
-   commute_cuda(dev_Htot3, dev_rhoaux, dev_Drho, n_tot, alf2);
-   matadd_cublas(dev_rhotot, dev_Drho, dev_rhonew, n_tot, alf3, alf3);
+   commute_cuda(dev_Htot3, dev_rhoaux, dev_Drho, n_tot, alf3);
+   matadd_cublas(dev_rhotot, dev_Drho, dev_rhonew, n_tot, alf3, alf2);
 
    qforce = get_Qforces_cuda(dev_rhoaux , fb_vec, n_el, n_phon, np_levels,
                              n_tot);
+   qforce = 0.0e0;
    move_x<<<Ncores2, Nthreads>>>(dev_xi, dev_vf, dev_xf, dt, n_bath);
 
    move_v<<<Ncores2, Nthreads>>>(dev_xh, dev_vi, dev_ki, dev_vf, qforce, dt,
@@ -493,4 +500,24 @@ void getingmat(complex<double> *matA, cuDoubleComplex *dev_A, int n_tot){
               cudaMemcpyDeviceToHost);
    return;
 }
-//
+//##############################################################################
+void getting_printing_info(double *Ener, double *mu, double *tr_rho,
+                           UNINT n_tot){
+
+   int dim2 = n_tot * n_tot;
+   cuDoubleComplex *dev_aux1;
+
+   cudaMalloc((void**) &dev_aux1, dim2 * sizeof(cuDoubleComplex));
+   matmul_cublas(dev_rhotot, dev_Htot1, dev_aux1, n_tot);
+   *Ener = get_trace_cuda(dev_aux1, n_tot);
+
+   matmul_cublas(dev_rhotot, dev_mutot, dev_aux1, n_tot);
+   *mu = get_trace_cuda(dev_aux1, n_tot);
+
+   *tr_rho = get_trace_cuda(dev_rhotot, n_tot);
+
+   cudaFree(dev_aux1);
+
+   return;
+}
+//##############################################################################

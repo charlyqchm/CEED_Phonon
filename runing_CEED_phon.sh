@@ -14,6 +14,7 @@
 #Field_amp:    1.0
 #Total_time:   1000
 #Delta_t:      0.1
+#print_step:   10
 
 input=$1
 

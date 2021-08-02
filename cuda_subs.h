@@ -1,6 +1,7 @@
 #ifndef CUDA_SUBS
 #define CUDA_SUBS
 
+#include <math.h>
 #include <cuda.h>
 #include <cuComplex.h>
 #include <cublas_v2.h>
@@ -70,4 +71,8 @@ void runge_kutta_propagator_cuda(double a_ceed, double dt, double Efield,
 void calcrhophon(cuDoubleComplex *dev_rhoin, int n_el, int n_phon,
                  int np_levels, int n_tot);
 void getingmat(complex<double> *matA, cuDoubleComplex *dev_A, int n_tot);
+
+void getting_printing_info(double *Ener, double *mu, double *tr_rho,
+                           UNINT n_tot);
+
 #endif
