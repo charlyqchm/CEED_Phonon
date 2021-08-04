@@ -319,7 +319,7 @@ void init_bath(UNINT n_bath, double temp,double bmass, double bfreq,
 
    double stdev = sqrt(temp/bmass);
    // double ki = bfreq * bfreq * bmass;
-   double ki = bfreq * bfreq; //This allows us to work with only xi. 
+   double ki = bfreq * bfreq; //This allows us to work with only xi.
 
    for(int ii=0; ii<n_bath; ii++){
       ki_vec[ii] = ki;
@@ -353,6 +353,7 @@ void init_output(ofstream* outfile){
     outfile[3].open("rhotrace.out");
     outfile[4].open("rho_elec.out");
     outfile[5].open("rho_phon.out");
+    outfile[6].open("Ek_bath.out");
 
     return;
 }
@@ -378,7 +379,7 @@ void write_output(double mass_bath, double dt, int tt, int print_t, UNINT n_el,
       for(int jj=0; jj<n_phon*np_levels; jj++){
           int ind1 = jj + ii*n_phon*np_levels;
           tr_rho_el[ii] += tr_rho[ind1].real();
-          tr_rho_el[jj] += tr_rho[ind1].real();
+          tr_rho_ph[jj] += tr_rho[ind1].real();
           trace_rho     += tr_rho[ind1].real();
       }
       }
