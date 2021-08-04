@@ -72,7 +72,7 @@ void calcrhophon(cuDoubleComplex *dev_rhoin, int n_el, int n_phon,
                  int np_levels, int n_tot);
 void getingmat(complex<double> *matA, cuDoubleComplex *dev_A, int n_tot);
 
-void getting_printing_info(double *Ener, double *mu, double *tr_rho,
+void getting_printing_info(double *Ener, double *mu, complex<double> *tr_rho,
                            UNINT n_tot);
 
 #endif

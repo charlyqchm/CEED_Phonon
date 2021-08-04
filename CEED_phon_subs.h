@@ -95,8 +95,8 @@ void init_bath(UNINT n_bath, double temp, double bmass, double ki, double span,
 
 void init_output(ofstream* outfile);
 
-void write_output(double dt, int tt, int print_t, UNINT n_tot,
-                  ofstream* outfile);
+void write_output(double dt, int tt, int print_t, UNINT n_el, UNINT n_phon,
+                  UNINT np_levels, UNINT n_tot, ofstream* outfile);
 
 void readinput(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
                  UNINT& n_bath, int& t_steps, int& print_t, double& dt,

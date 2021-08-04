@@ -350,21 +350,44 @@ void init_output(ofstream* outfile){
     outfile[1].open("dipole.out");
     outfile[2].open("time.out");
     outfile[3].open("rhotrace.out");
+    outfile[4].open("rho_elec.out");
+    outfile[5].open("rho_phon.out");
 
     return;
 }
 //##############################################################################
-void write_output(double dt, int tt, int print_t, UNINT n_tot,
-                  ofstream* outfile){
+void write_output(double dt, int tt, int print_t, UNINT n_el, UNINT n_phon,
+                  UNINT np_levels, UNINT n_tot, ofstream* outfile){
 
-   double Ener, mu, tr_rho;
+   double Ener, mu, trace_rho;
+   vector<double> tr_rho_el(n_el, 0.0e0);
+   vector<double> tr_rho_ph(n_phon*np_levels, 0.0e0);
+   vector< complex<double> > tr_rho(n_tot,0.0e0);
 
    if(tt%print_t==0){
-      getting_printing_info( & Ener, & mu, & tr_rho, n_tot);
+      getting_printing_info( & Ener, & mu, & *tr_rho.begin(), n_tot);
       outfile[0]<<Ener<<endl;
       outfile[1]<<mu<<endl;
       outfile[2]<< tt*dt <<endl;
-      outfile[3]<<tr_rho<<endl;
+
+      trace_rho = 0.0e0;
+      for(int ii=0; ii<n_el; ii++){
+      for(int jj=0; jj<n_phon*np_levels; jj++){
+          int ind1 = jj + ii*n_phon*np_levels;
+          tr_rho_el[ii] += tr_rho[ind1].real();
+          tr_rho_el[jj] += tr_rho[ind1].real();
+          trace_rho     += tr_rho[ind1].real();
+      }
+      }
+
+      outfile[3]<<trace_rho<<endl;
+
+      for(int ii=0; ii<n_el; ii++){
+         outfile[4]<<"   "<<ii<<"   "<<tr_rho_el[ii]<<endl;
+      }
+      for(int jj=0; jj<n_phon*np_levels; jj++){
+         outfile[5]<<"   "<<jj<<"   "<<tr_rho_ph[jj]<<endl;
+      }
    }
    return;
 }

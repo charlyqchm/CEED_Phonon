@@ -501,21 +501,28 @@ void getingmat(complex<double> *matA, cuDoubleComplex *dev_A, int n_tot){
    return;
 }
 //##############################################################################
-void getting_printing_info(double *Ener, double *mu, double *tr_rho,
+void getting_printing_info(double *Ener, double *mu, complex<double> *tr_rho,
                            UNINT n_tot){
 
    int dim2 = n_tot * n_tot;
    cuDoubleComplex *dev_aux1;
+   cuDoubleComplex *dev_vec;
 
    cudaMalloc((void**) &dev_aux1, dim2 * sizeof(cuDoubleComplex));
+   cudaMalloc((void**) &dev_vec, n_tot * sizeof(cuDoubleComplex));
+
    matmul_cublas(dev_rhotot, dev_Htot1, dev_aux1, n_tot);
    *Ener = get_trace_cuda(dev_aux1, n_tot);
 
    matmul_cublas(dev_rhotot, dev_mutot, dev_aux1, n_tot);
    *mu = get_trace_cuda(dev_aux1, n_tot);
 
-   *tr_rho = get_trace_cuda(dev_rhotot, n_tot);
+   get_diag<<<Ncores1, Nthreads>>>(dev_rhotot, dev_vec, n_tot);
 
+   cudaMemcpy(tr_rho, dev_vec, n_tot*sizeof(cuDoubleComplex),
+   cudaMemcpyDeviceToHost);
+
+   cudaFree(dev_vec);
    cudaFree(dev_aux1);
 
    return;
