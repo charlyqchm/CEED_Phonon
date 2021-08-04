@@ -39,7 +39,7 @@ int main(){
 
    ofstream outfile[4], output_test;
 
-   read_inputs(n_el, n_phon, np_levels, n_tot, n_bath, t_steps, print_t, dt,
+   readinput(n_el, n_phon, np_levels, n_tot, n_bath, t_steps, print_t, dt,
                k0_inter, Efield, b_temp, a_ceed, el_ener_vec, w_phon_vec, mass_phon_vec,
                fb_vec);
 
@@ -63,8 +63,9 @@ int main(){
 
    build_rho_matrix(rho_tot, eigen_coef, eigen_coefT, n_tot);
 
-   //At some point here we need to initialize ki_vec, xi_vec and vi_vec
-
+   init_bath(n_bath, b_temp, mass_phon_vec[0], w_phon_vec[0],
+      xi_vec, vi_vec, ki_vec);
+      
    init_cuda(& *H_tot.begin(), & *mu_tot.begin(), & *v_bath_mat.begin(),
              & *fb_vec.begin(), & *xi_vec.begin(), & *vi_vec.begin(),
              & *ki_vec.begin(), & *rho_tot.begin(), & *rho_phon.begin(),
