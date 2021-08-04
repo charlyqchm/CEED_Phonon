@@ -126,6 +126,30 @@ __global__ void get_partial_sum(double *xi_vec, double *sum_vec, int n_bath){
    return;
 }
 //##############################################################################
+__global__ void get_partial_Ek(double *vi_vec, double *sum_vec, int n_bath){
+   __shared__ double cache[Nthreads];
+   int ind        = threadIdx.x + blockIdx.x * blockDim.x;
+   int cacheIndex = threadIdx.x;
+
+   cache[cacheIndex] = 0.0e0;
+   if (ind < n_bath){
+      cache[cacheIndex] = vi_vec[ind]*vi_vec[ind];
+      __syncthreads();
+      int ii = blockDim.x/2;
+      while (ii != 0) {
+         if (cacheIndex < ii){
+            cache[cacheIndex] += cache[cacheIndex + ii];
+         }
+         __syncthreads();
+         ii /= 2;
+      }
+      if (cacheIndex == 0){
+         sum_vec[blockIdx.x] = cache[0];
+      }
+   }
+   return;
+}
+//##############################################################################
 __global__ void move_v(double *xi_vec, double *vi_vec, double *ki_vec,
                        double *vf_vec, double qforce, double dt,
                        int n_bath){
@@ -390,9 +414,9 @@ double get_Qforces_cuda(cuDoubleComplex *dev_rhoin ,double *fb_vec,
    return qforce;
 }
 //##############################################################################
-void runge_kutta_propagator_cuda(double a_ceed, double dt, double Efield,
-                                 double *fb_vec, int tt, UNINT n_el,
-                                 UNINT n_phon, UNINT np_levels,
+void runge_kutta_propagator_cuda(double mass_bath, double a_ceed, double dt,
+                                 double Efield, double *fb_vec, int tt,
+                                 UNINT n_el, UNINT n_phon, UNINT np_levels,
                                  UNINT n_tot, UNINT n_bath){
 
    const cuDoubleComplex alf1 = make_cuDoubleComplex(0.0e0, -0.5*dt);
@@ -438,7 +462,7 @@ void runge_kutta_propagator_cuda(double a_ceed, double dt, double Efield,
    //Calculating x(t+dt/2) and v(t+dt/2) using the Quantum forces --------------
    qforce = get_Qforces_cuda(dev_rhotot , fb_vec, n_el, n_phon, np_levels,
                              n_tot);
-   qforce = 0.0e0;
+   qforce = qforce/mass_bath;
    move_x<<<Ncores2, Nthreads>>>(dev_xi, dev_vi, dev_xh, dth, n_bath);
 
 
@@ -471,7 +495,7 @@ void runge_kutta_propagator_cuda(double a_ceed, double dt, double Efield,
 
    qforce = get_Qforces_cuda(dev_rhoaux , fb_vec, n_el, n_phon, np_levels,
                              n_tot);
-   qforce = 0.0e0;
+   qforce = qforce/mass_bath;
    move_x<<<Ncores2, Nthreads>>>(dev_xi, dev_vf, dev_xf, dt, n_bath);
 
    move_v<<<Ncores2, Nthreads>>>(dev_xh, dev_vi, dev_ki, dev_vf, qforce, dt,
@@ -502,14 +526,17 @@ void getingmat(complex<double> *matA, cuDoubleComplex *dev_A, int n_tot){
 }
 //##############################################################################
 void getting_printing_info(double *Ener, double *mu, complex<double> *tr_rho,
-                           UNINT n_tot){
+                           double *Ek_bath, UNINT n_tot, UNINT n_bath){
 
    int dim2 = n_tot * n_tot;
    cuDoubleComplex *dev_aux1;
    cuDoubleComplex *dev_vec;
+   double *dev_partialvec;
+   double  partialvec[Ncores2];
 
    cudaMalloc((void**) &dev_aux1, dim2 * sizeof(cuDoubleComplex));
    cudaMalloc((void**) &dev_vec, n_tot * sizeof(cuDoubleComplex));
+   cudaMalloc((void**) &dev_partialvec, Ncores2*sizeof(double));
 
    matmul_cublas(dev_rhotot, dev_Htot1, dev_aux1, n_tot);
    *Ener = get_trace_cuda(dev_aux1, n_tot);
@@ -522,8 +549,18 @@ void getting_printing_info(double *Ener, double *mu, complex<double> *tr_rho,
    cudaMemcpy(tr_rho, dev_vec, n_tot*sizeof(cuDoubleComplex),
    cudaMemcpyDeviceToHost);
 
+   get_partial_Ek<<<Ncores2, Nthreads>>>(dev_vi, dev_partialvec, n_bath);
+   cudaMemcpy(partialvec, dev_partialvec, Ncores2*sizeof(double),
+              cudaMemcpyDeviceToHost);
+
+   *Ek_bath = 0.0e0;
+   for (int ii=1; ii<Ncores2; ii++){
+      *Ek_bath += 0.5e0 * partialvec[ii];
+   }
+
    cudaFree(dev_vec);
    cudaFree(dev_aux1);
+   cudaFree(dev_partialvec);
 
    return;
 }

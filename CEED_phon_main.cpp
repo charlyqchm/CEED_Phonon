@@ -15,6 +15,7 @@ int main(){
    double                     a_ceed   = 2.0/3.0 * 1.0/pow(137.0,3.0);
    double                     Efield;
    double                     b_temp;
+   double                     mass_bath;
    vector<double>             el_ener_vec;
    vector<double>             fb_vec;
    vector<double>             ki_vec;      //bath string constants
@@ -37,11 +38,14 @@ int main(){
    vector < complex<double> > rho_phon;
    vector < complex<double> > rho_tot;
 
-   ofstream outfile[6], output_test;
+   ofstream outfile[7], output_test;
 
    readinput(n_el, n_phon, np_levels, n_tot, n_bath, t_steps, print_t, dt,
-               k0_inter, Efield, b_temp, a_ceed, el_ener_vec, w_phon_vec, mass_phon_vec,
-               fb_vec);
+               k0_inter, Efield, b_temp, a_ceed, el_ener_vec, w_phon_vec,
+               mass_phon_vec, fb_vec);
+
+//Dirty thing:
+   mass_bath = mass_phon_vec[0];
 
    init_matrix(H_tot, H0_mat, Hcoup_mat, Fcoup_mat, mu_elec_mat, mu_phon_mat,
                v_bath_mat, mu_tot, dVdX_mat, ki_vec, xi_vec, vi_vec, eigen_E,
@@ -63,8 +67,8 @@ int main(){
 
    build_rho_matrix(rho_tot, eigen_coef, eigen_coefT, n_tot);
 
-   init_bath(n_bath, b_temp, mass_phon_vec[0], w_phon_vec[0],
-      xi_vec, vi_vec, ki_vec);
+   init_bath(n_bath, b_temp, mass_bath, w_phon_vec[0],
+             xi_vec, vi_vec, ki_vec);
 
    init_cuda(& *H_tot.begin(), & *mu_tot.begin(), & *v_bath_mat.begin(),
              & *fb_vec.begin(), & *xi_vec.begin(), & *vi_vec.begin(),
@@ -72,15 +76,18 @@ int main(){
              & *dVdX_mat.begin(), n_el, n_phon, np_levels, n_tot, n_bath);
 
    init_output(outfile);
-   write_output(dt, 0, print_t, n_el, n_phon, np_levels, n_tot, outfile);
+   write_output(mass_bath, dt, 0, print_t, n_el, n_phon, np_levels, n_tot,
+                n_bath, outfile);
 
 //Here the time propagation beguin:---------------------------------------------
    for(int tt=1; tt<= t_steps; tt++){
 
-      runge_kutta_propagator_cuda(a_ceed, dt, Efield, & *fb_vec.begin(), tt,
-                                  n_el, n_phon, np_levels, n_tot, n_bath);
+      runge_kutta_propagator_cuda(mass_bath, a_ceed, dt, Efield,
+                                  & *fb_vec.begin(), tt, n_el, n_phon,
+                                  np_levels, n_tot, n_bath);
 
-      write_output(dt, tt, print_t, n_el, n_phon, np_levels, n_tot, outfile);
+      write_output(mass_bath, dt, tt, print_t, n_el, n_phon, np_levels, n_tot,
+                   n_bath, outfile);
 
    }
 //------------------------------------------------------------------------------
@@ -109,7 +116,7 @@ int main(){
    //
    // output_test.close();
 
-   for (int ii=0; ii<6; ii++){
+   for (int ii=0; ii<7; ii++){
       outfile[ii].close();
    }
    // output_test.close();

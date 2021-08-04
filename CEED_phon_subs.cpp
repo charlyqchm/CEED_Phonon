@@ -318,7 +318,8 @@ void init_bath(UNINT n_bath, double temp,double bmass, double bfreq,
    vector<double>& ki_vec){
 
    double stdev = sqrt(temp/bmass);
-   double ki = bfreq * bfreq * bmass;
+   // double ki = bfreq * bfreq * bmass;
+   double ki = bfreq * bfreq; //This allows us to work with only xi. 
 
    for(int ii=0; ii<n_bath; ii++){
       ki_vec[ii] = ki;
@@ -356,16 +357,18 @@ void init_output(ofstream* outfile){
     return;
 }
 //##############################################################################
-void write_output(double dt, int tt, int print_t, UNINT n_el, UNINT n_phon,
-                  UNINT np_levels, UNINT n_tot, ofstream* outfile){
+void write_output(double mass_bath, double dt, int tt, int print_t, UNINT n_el,
+                  UNINT n_phon, UNINT np_levels, UNINT n_tot, UNINT n_bath,
+                  ofstream* outfile){
 
-   double Ener, mu, trace_rho;
+   double Ener, mu, trace_rho, Ek_bath;
    vector<double> tr_rho_el(n_el, 0.0e0);
    vector<double> tr_rho_ph(n_phon*np_levels, 0.0e0);
    vector< complex<double> > tr_rho(n_tot,0.0e0);
 
    if(tt%print_t==0){
-      getting_printing_info( & Ener, & mu, & *tr_rho.begin(), n_tot);
+      getting_printing_info( & Ener, & mu, & *tr_rho.begin(), & Ek_bath, n_tot,
+                            n_bath);
       outfile[0]<<Ener<<endl;
       outfile[1]<<mu<<endl;
       outfile[2]<< tt*dt <<endl;
@@ -388,6 +391,7 @@ void write_output(double dt, int tt, int print_t, UNINT n_el, UNINT n_phon,
       for(int jj=0; jj<n_phon*np_levels; jj++){
          outfile[5]<<"   "<<jj<<"   "<<tr_rho_ph[jj]<<endl;
       }
+      outfile[6]<<mass_bath*Ek_bath/n_bath<<endl;
    }
    return;
 }

@@ -63,8 +63,8 @@ void include_Hceed_cuda(cuDoubleComplex *dev_Hout, cuDoubleComplex *dev_Hin,
 double get_Qforces_cuda(cuDoubleComplex *dev_rhoin ,double *fb_vec,
                         UNINT n_el, UNINT n_phon, UNINT np_levels, UNINT n_tot);
 
-void runge_kutta_propagator_cuda(double a_ceed, double dt, double Efield,
-                                 double *fb_vec, int tt,
+void runge_kutta_propagator_cuda(double mass_bath, double a_ceed, double dt,
+                                 double Efield, double *fb_vec, int tt,
                                  UNINT n_el, UNINT n_phon, UNINT np_levels,
                                  UNINT n_tot, UNINT n_bath);
 
@@ -73,6 +73,6 @@ void calcrhophon(cuDoubleComplex *dev_rhoin, int n_el, int n_phon,
 void getingmat(complex<double> *matA, cuDoubleComplex *dev_A, int n_tot);
 
 void getting_printing_info(double *Ener, double *mu, complex<double> *tr_rho,
-                           UNINT n_tot);
+                           double *Ek_bath, UNINT n_tot, UNINT n_bath);
 
 #endif
