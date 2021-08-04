@@ -15,6 +15,7 @@
 #Total_time:   1000
 #Delta_t:      0.1
 #print_step:   10
+#bath_temp:    0.1
 
 input=$1
 

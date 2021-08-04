@@ -14,6 +14,7 @@ int main(){
    double                     k0_inter;//interaction constant bath-phonons
    double                     a_ceed   = 2.0/3.0 * 1.0/pow(137.0,3.0);
    double                     Efield;
+   double                     b_temp;
    vector<double>             el_ener_vec;
    vector<double>             fb_vec;
    vector<double>             ki_vec;      //bath string constants
@@ -39,7 +40,7 @@ int main(){
    ofstream outfile[4], output_test;
 
    read_inputs(n_el, n_phon, np_levels, n_tot, n_bath, t_steps, print_t, dt,
-               k0_inter, Efield, a_ceed, el_ener_vec, w_phon_vec, mass_phon_vec,
+               k0_inter, Efield, b_temp, a_ceed, el_ener_vec, w_phon_vec, mass_phon_vec,
                fb_vec);
 
    init_matrix(H_tot, H0_mat, Hcoup_mat, Fcoup_mat, mu_elec_mat, mu_phon_mat,

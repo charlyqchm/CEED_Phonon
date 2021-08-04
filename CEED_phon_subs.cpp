@@ -4,7 +4,8 @@
 //##############################################################################
 void read_inputs(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
                  UNINT& n_bath, int& t_steps, int& print_t, double& dt,
-                 double& k0_inter, double& Efield, double& a_ceed,
+                 double& k0_inter, double& Efield, double& b_temp,
+                 double& a_ceed,
                  vector<double>& el_ener_vec, vector<double>& w_phon_vec,
                  vector<double>& mass_phon_vec, vector<double>& fb_vec){
 
@@ -55,6 +56,7 @@ void read_inputs(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
    inputf>> t_steps;
    inputf>> dt;
    inputf>> print_t;
+   inputf>> b_temp;
 
    a_ceed = a_ceed * k_ceed;
 
@@ -367,7 +369,7 @@ void write_output(double dt, int tt, int print_t, UNINT n_tot,
 //##############################################################################
 void readinput(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
                  UNINT& n_bath, int& t_steps, int& print_t, double& dt,
-                 double& k0_inter,double& Efield, double& a_ceed,
+                 double& k0_inter,double& Efield, double& b_bath,double& a_ceed,
                  vector<double>& el_ener_vec, vector<double>& w_phon_vec,
                  vector<double>& mass_phon_vec, vector<double>& fb_vec){
   ifstream inputf;
@@ -390,7 +392,8 @@ void readinput(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
     "Field_amp",
     "Total_time",
     "Delta_t",
-    "print_step"};
+    "print_step",
+    "bath_temp"};
 
   string veckeys[] = {"Elec_levels",
     "fb_vec",
@@ -400,7 +403,7 @@ void readinput(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
   while (getline(inputf, str))
   {
     //cout << str << "\n";
-    for(int jj=0; jj<10; jj++)
+    for(int jj=0; jj<11; jj++)
     {
       size_t found = str.find(keys[jj]);
       if (found != string::npos)
@@ -418,6 +421,7 @@ void readinput(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
         else if(jj==7) linestream >> t_steps;
         else if(jj==8) linestream >> dt;
         else if(jj==9) linestream >> print_t;
+        else if(jj==10) linestream >> b_temp;
       }
     }
 

@@ -29,7 +29,8 @@ extern "C" {
 
 void read_inputs(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
                  UNINT& n_bath, int& t_steps, int& print_t, double& dt,
-                 double& k0_inter, double& Efield, double& a_ceed,
+                 double& k0_inter, double& Efield,double& b_bath,
+                 double& a_ceed,
                  vector<double>& el_ener_vec, vector<double>& w_phon_vec,
                  vector<double>& mass_phon_vec, vector<double>& fb_vec);
 
@@ -87,7 +88,7 @@ void init_bath(UNINT n_bath, double temp,double bmass, double ki,
    vector<double>& vi_vec,
    vector<double>& ki_vec);
 
-void init_bath(UNINT n_bath, double temp,double bmass, double ki, double span,
+void init_bath(UNINT n_bath, double temp, double bmass, double ki, double span,
       vector<double>& xi_vec,
       vector<double>& vi_vec,
       vector<double>& ki_vec);
@@ -99,7 +100,8 @@ void write_output(double dt, int tt, int print_t, UNINT n_tot,
 
 void readinput(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
                  UNINT& n_bath, int& t_steps, int& print_t, double& dt,
-                 double& k0_inter,double& Efield, double& a_ceed,
+                 double& k0_inter,double& Efield,double& b_bath,
+                 double& a_ceed,
                  vector<double>& el_ener_vec, vector<double>& w_phon_vec,
                  vector<double>& mass_phon_vec, vector<double>& fb_vec);
 #endif
