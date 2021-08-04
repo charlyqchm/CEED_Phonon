@@ -369,7 +369,7 @@ void write_output(double dt, int tt, int print_t, UNINT n_tot,
 //##############################################################################
 void readinput(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
                  UNINT& n_bath, int& t_steps, int& print_t, double& dt,
-                 double& k0_inter,double& Efield, double& b_bath,double& a_ceed,
+                 double& k0_inter,double& Efield, double& b_temp,double& a_ceed,
                  vector<double>& el_ener_vec, vector<double>& w_phon_vec,
                  vector<double>& mass_phon_vec, vector<double>& fb_vec){
   ifstream inputf;
