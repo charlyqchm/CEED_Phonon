@@ -4,7 +4,8 @@
 //##############################################################################
 void read_inputs(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
                  UNINT& n_bath, int& t_steps, int& print_t, double& dt,
-                 double& k0_inter, double& Efield, double& a_ceed,
+                 double& k0_inter, double& Efield, double& b_temp,
+                 double& a_ceed,
                  vector<double>& el_ener_vec, vector<double>& w_phon_vec,
                  vector<double>& mass_phon_vec, vector<double>& fb_vec){
 
@@ -55,6 +56,7 @@ void read_inputs(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
    inputf>> t_steps;
    inputf>> dt;
    inputf>> print_t;
+   inputf>> b_temp;
 
    a_ceed = a_ceed * k_ceed;
 
@@ -252,7 +254,7 @@ void build_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
    }
 
    for (int ii=0; ii<n_tot*n_tot; ii++){
-      v_bath_mat[ii] = k0_inter * mu_phon_mat[ii]; 
+      v_bath_mat[ii] = k0_inter * mu_phon_mat[ii];
       H0_mat[ii]    += Hcoup_mat[ii];
       H_tot[ii]      = complex<double> (H0_mat[ii], 0.0e0);
       mu_tot[ii]     = complex<double> (mu_elec_mat[ii]+mu_phon_mat[ii], 0.0e0);
@@ -363,5 +365,118 @@ void write_output(double dt, int tt, int print_t, UNINT n_tot,
       outfile[3]<<tr_rho<<endl;
    }
    return;
+}
+//##############################################################################
+void readinput(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
+                 UNINT& n_bath, int& t_steps, int& print_t, double& dt,
+                 double& k0_inter,double& Efield, double& b_temp,double& a_ceed,
+                 vector<double>& el_ener_vec, vector<double>& w_phon_vec,
+                 vector<double>& mass_phon_vec, vector<double>& fb_vec){
+  ifstream inputf;
+  inputf.open("input.in");
+  if (!inputf) {
+     cout << "Unable to open input.in";
+     exit(1); // terminate with error
+  }
+
+  int eqpos;
+  string str;
+  double k_ceed;
+
+  string keys[] = {"N_electrons",
+    "N_phonons",
+    "N_phon_levels",
+    "N_bath",
+    "K0_bath",
+    "K_ceed",
+    "Field_amp",
+    "Total_time",
+    "Delta_t",
+    "print_step",
+    "bath_temp"};
+
+  string veckeys[] = {"Elec_levels",
+    "fb_vec",
+    "Phon_freq",
+    "Phon_mass"};
+
+  while (getline(inputf, str))
+  {
+    //cout << str << "\n";
+    for(int jj=0; jj<11; jj++)
+    {
+      size_t found = str.find(keys[jj]);
+      if (found != string::npos)
+      {
+        stringstream   linestream(str);
+        string         data;
+        getline(linestream, data, '=');
+        if(jj==0) linestream >> n_el;
+        else if(jj==1) linestream >> n_phon;
+        else if(jj==2) linestream >> np_levels;
+        else if(jj==3) linestream >> n_bath;
+        else if(jj==4) linestream >> k0_inter;
+        else if(jj==5) linestream >> k_ceed;
+        else if(jj==6) linestream >> Efield;
+        else if(jj==7) linestream >> t_steps;
+        else if(jj==8) linestream >> dt;
+        else if(jj==9) linestream >> print_t;
+        else if(jj==10) linestream >> b_temp;
+      }
+    }
+
+  }
+
+  n_tot = n_el * n_phon * np_levels;
+  a_ceed = a_ceed * k_ceed;
+
+  inputf.close();
+
+  inputf.open("input.in");
+  while (getline(inputf, str))
+  {
+    //cout << str << "\n";
+    for(int jj=0; jj<4; jj++)
+    {
+      size_t found = str.find(veckeys[jj]);
+      if (found != string::npos)
+      {
+        stringstream linestream(str);
+        string         data;
+        getline(linestream, data, '=');
+        if(jj==0){
+           for (int ii=0; ii<n_el; ii++){
+              double el_ener;
+              linestream >> el_ener;
+              el_ener_vec.push_back(el_ener);
+           }
+        }
+        else if(jj==1){
+           for (int ii=0; ii<n_el; ii++){
+              double fb;
+              linestream >> fb;
+              fb_vec.push_back(fb);
+           }
+        }
+        else if(jj==2){
+           for (int ii=0; ii<n_phon; ii++){
+              double w_phon;
+              linestream >> w_phon;
+              w_phon_vec.push_back(w_phon);
+           }
+        }
+        else if(jj==3){
+           for (int ii=0; ii<n_phon; ii++){
+              double mass_phon;
+              linestream >> mass_phon;
+              mass_phon_vec.push_back(mass_phon);
+           }
+        }
+      }
+    }
+
+  }
+  inputf.close();
+  return;
 }
 //##############################################################################
