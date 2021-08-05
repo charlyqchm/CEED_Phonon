@@ -96,7 +96,7 @@ int main(){
    // commute_cuda(dev_Htot1, dev_rhotot, dev_rhonew, n_tot);
 
    // calcrhophon(dev_rhotot, n_el, n_phon, np_levels, n_tot);
-   // getingmat(& *mu_tot.begin(), dev_mutot, n_tot);
+   // getingmat(& *H_tot.begin(), dev_Htot2, n_tot);
 
    // double aux1_real = get_trace_cuda(dev_rhophon, np_levels*n_phon);
    // cout << aux1_real<<endl;
@@ -108,18 +108,19 @@ int main(){
    //    }
    // }
 
-   // for(int jj=0; jj<n_tot; jj++){
-      // for(int ii=0; ii<n_tot; ii++){
-         // output_test<<ii<<"  "<<jj<<"  "<<H_tot[ii+jj*n_tot]<<endl;
-         // }
-      // }
+   // output_test.open("testfile.out");
    //
+   // for(int jj=0; jj<n_tot; jj++){
+   //    for(int ii=0; ii<n_tot; ii++){
+   //       output_test<<ii<<"  "<<jj<<"  "<<H_tot[ii+jj*n_tot].real() - H0_mat[ii+jj*n_tot]<<endl;
+   //       }
+   //    }
+   // //
    // output_test.close();
 
    for (int ii=0; ii<7; ii++){
       outfile[ii].close();
    }
-   // output_test.close();
    free_cuda_memory();
    return 0;
 };

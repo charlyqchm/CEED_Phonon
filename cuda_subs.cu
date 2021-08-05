@@ -42,11 +42,11 @@ __global__ void update_H_tot(cuDoubleComplex *H_out, cuDoubleComplex *H_in,
       int i1   = ind / n_tot;
       int i_e  = i1 / (n_phon*np_levels);
 
-      H_out[ind] = make_cuDoubleComplex(0.0e0,0.0e0);
+      H_out[ind] = H_in[ind];
 
       if ( ind == i1 + i1*n_tot ){
          aux1       = make_cuDoubleComplex(fb_vec[i_e] * sum_xi, 0.0e0);
-         H_out[ind] = cuCadd(H_in[ind],aux1);
+         H_out[ind] = cuCadd(H_out[ind],aux1);
       }
 
       aux1 = make_cuDoubleComplex(Efield, 0.0e0);
