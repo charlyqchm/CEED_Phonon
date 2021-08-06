@@ -2,7 +2,7 @@ CC := nvcc
 CFLAGS := -O3 -lcublas -lblas -llapack --gpu-architecture=sm_50
 
 objects    = cuda_subs.o CEED_phon_subs.o CEED_phon_main.o
-executable = program.out
+executable = program.e
 
 $(executable): $(objects)
 			$(CC) -o $@ $^ ${CFLAGS}
