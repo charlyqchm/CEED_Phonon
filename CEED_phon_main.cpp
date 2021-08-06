@@ -10,6 +10,7 @@ int main(){
    UNINT                      n_bath;
    int                        t_steps;
    int                        print_t;
+   int                        seed;
    double                     dt;
    double                     k0_inter;//interaction constant bath-phonons
    double                     a_ceed   = 2.0/3.0 * 1.0/pow(137.0,3.0);
@@ -41,8 +42,8 @@ int main(){
    ofstream outfile[7], output_test;
 
    readinput(n_el, n_phon, np_levels, n_tot, n_bath, t_steps, print_t, dt,
-               k0_inter, Efield, b_temp, a_ceed, el_ener_vec, w_phon_vec,
-               mass_phon_vec, fb_vec);
+               k0_inter, Efield, b_temp, a_ceed, seed, el_ener_vec,
+               w_phon_vec, mass_phon_vec, fb_vec);
 
 //Dirty thing:
    mass_bath = mass_phon_vec[0];
@@ -67,7 +68,7 @@ int main(){
 
    build_rho_matrix(rho_tot, eigen_coef, eigen_coefT, n_tot);
 
-   init_bath(n_bath, b_temp, mass_bath, w_phon_vec[0],
+   init_bath(n_bath, b_temp, mass_bath, w_phon_vec[0], seed,
              xi_vec, vi_vec, ki_vec);
 
    init_cuda(& *H_tot.begin(), & *mu_tot.begin(), & *v_bath_mat.begin(),
