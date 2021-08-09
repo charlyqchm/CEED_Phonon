@@ -57,7 +57,7 @@ int main(){
                n_tot, n_el, n_phon, np_levels, n_bath);
 
    read_matrix_inputs(n_el, n_phon, np_levels, n_tot, Fcoup_mat, mu_elec_mat);
-
+   readefield(efield_flag, efield_vec);
    build_matrix(H_tot, H0_mat, Hcoup_mat, mu_phon_mat, dVdX_mat, Fcoup_mat,
                 mu_elec_mat, v_bath_mat, mu_tot, el_ener_vec, w_phon_vec,
                 mass_phon_vec, k0_inter, n_el, n_phon, np_levels, n_tot);
@@ -85,7 +85,7 @@ int main(){
 
 //Here the time propagation beguin:---------------------------------------------
    for(int tt=1; tt<= t_steps; tt++){
-
+      efield_t(efield_flag, tt, dt, Efield, efield_vec, Efield_t)
       runge_kutta_propagator_cuda(mass_bath, a_ceed, dt, Efield_t[0],
                                   Efield_t[1], & *fb_vec.begin(),
                                   tt, n_el, n_phon, np_levels, n_tot, n_bath);

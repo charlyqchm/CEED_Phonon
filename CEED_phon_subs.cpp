@@ -521,6 +521,7 @@ void readinput(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
 }
 void readefield(int& efield_flag, vector<double>& efield_vec){
    ifstream inputf;
+   double val;
    inputf.open("efield.in");
    if (!inputf) {
       cout << "Unable to open efield.in";
@@ -529,7 +530,8 @@ void readefield(int& efield_flag, vector<double>& efield_vec){
 
    inputf >> efield_flag;
    for(int ii=0; ii<5; ii++){
-      inputf >> efield_vec[ii];
+      inputf >> val;
+      efield_vec.push_back(val);
    }
 
    //check shapes
