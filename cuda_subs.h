@@ -64,8 +64,9 @@ double get_Qforces_cuda(cuDoubleComplex *dev_rhoin ,double *fb_vec,
                         UNINT n_el, UNINT n_phon, UNINT np_levels, UNINT n_tot);
 
 void runge_kutta_propagator_cuda(double mass_bath, double a_ceed, double dt,
-                                 double Efield, double *fb_vec, int tt,
-                                 UNINT n_el, UNINT n_phon, UNINT np_levels,
+                                 double Efield, double Efieldaux,
+                                 double *fb_vec, int tt, UNINT n_el,
+                                 UNINT n_phon, UNINT np_levels,
                                  UNINT n_tot, UNINT n_bath);
 
 void calcrhophon(cuDoubleComplex *dev_rhoin, int n_el, int n_phon,

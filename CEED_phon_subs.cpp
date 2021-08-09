@@ -119,6 +119,7 @@ void init_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
                  vector<double>& ki_vec,
                  vector<double>& xi_vec,
                  vector<double>& vi_vec,
+                 vector<double>& Efield_t,
                  vector<double>& eigen_E,
                  vector<double>& eigen_coef, vector<double>& eigen_coefT,
                  vector < complex<double> >& rho_phon,
@@ -146,6 +147,9 @@ void init_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
    for(int ii=0; ii<(n_el*n_el); ii++){
       Fcoup_mat.push_back(0.0e0);
    }
+
+   Efield_t.push_back(0.0e0);
+   Efield_t.push_back(0.0e0);
 
    for(int ii=0; ii<(n_phon*n_phon*np_levels*np_levels); ii++){
       dVdX_mat.push_back((0.0e0, 0.0e0));
@@ -313,10 +317,12 @@ double rand_gaussian(double mean, double stdev){
 }
 //##############################################################################
 void init_bath(UNINT n_bath, double temp,double bmass, double bfreq,
+   int seed,
    vector<double>& xi_vec,
    vector<double>& vi_vec,
    vector<double>& ki_vec){
 
+   srand(seed);
    double stdev = sqrt(temp/bmass);
    // double ki = bfreq * bfreq * bmass;
    double ki = bfreq * bfreq; //This allows us to work with only xi.
@@ -330,7 +336,7 @@ void init_bath(UNINT n_bath, double temp,double bmass, double bfreq,
 }
 //##############################################################################
 void init_bath(UNINT n_bath, double temp, double bmass, double bfreq,
-   double span,
+   double span, int seed,
    vector<double>& xi_vec,
    vector<double>& vi_vec,
    vector<double>& ki_vec){
@@ -513,4 +519,116 @@ void readinput(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
   inputf.close();
   return;
 }
+void readefield(int& efield_flag, vector<double>& efield_vec){
+   ifstream inputf;
+   inputf.open("efield.in");
+   if (!inputf) {
+      cout << "Unable to open efield.in";
+      exit(1); // terminate with error
+   }
+
+   inputf >> efield_flag;
+   for(int ii=0; ii<5; ii++){
+      inputf >> efield_vec[ii];
+   }
+
+   //check shapes
+   if((efield_flag == 0) || (efield_flag == 2)){
+      if((efield_vec[0]>efield_vec[1]) || (efield_vec[2]>efield_vec[3])){
+         cout << "Bad start-end definition in efield.in";
+         exit(1); // terminate with error
+      }
+   }
+   if((efield_flag == 1) || (efield_flag == 3)){
+      if(efield_vec[0]>efield_vec[1]){
+         cout << "Bad start-end definition in efield.in";
+         exit(1); // terminate with error
+      }
+      if((efield_vec[3]<=0) || (efield_vec[4]<=0)){
+         cout << "Wrong definitions in efield.in";
+         exit(1); // terminate with error
+      }
+   }
+   return;
+}
 //##############################################################################
+
+void efield_t(int efield_flag, int tt, double dt, double Efield,
+                 vector<double> efield_vec, vector<double>& Efield_t){
+   double time = dt * tt;
+   double timeaux = time + dt/2.0;
+   double phase;
+
+   Efield_t[0] = Efield;
+   Efield_t[1] = Efield;
+
+   if(efield_flag == -1){
+      cout << "Invalid electric field";
+      exit(1);
+   }
+   else if(efield_flag == 0){
+      if((time>efield_vec[0]) && (timeaux<efield_vec[1])){
+         phase = (time - efield_vec[0])/(efield_vec[1]-efield_vec[0]) * M_PI;
+         Efield_t[0] *= 0.5 * (1-cos(phase));
+         phase = (timeaux - efield_vec[0])/(efield_vec[1]-efield_vec[0]) * M_PI;
+         Efield_t[1] *= 0.5 * (1-cos(phase));
+      }
+      else if ((time>efield_vec[2]) && (timeaux<efield_vec[3])){
+         phase = (time - efield_vec[2])/(efield_vec[3]-efield_vec[2]) * M_PI;
+         Efield_t[0] *= 0.5 * (1+cos(phase));
+         phase = (timeaux - efield_vec[2])/(efield_vec[3]-efield_vec[2]) * M_PI;
+         Efield_t[1] *= 0.5 * (1+cos(phase));
+      }
+      else if((time<=efield_vec[0]) || (timeaux>=efield_vec[3])){
+         Efield_t[0] = 0.0e0;
+         Efield_t[1] = 0.0e0;
+      }
+   }
+   else if(efield_flag == 1){
+      if((timeaux>efield_vec[0]) && (timeaux<efield_vec[1])){
+         phase = pow((time - efield_vec[2])/efield_vec[3], 2);
+         Efield_t[0] *= exp(-0.5 * phase);
+         phase = pow((timeaux - efield_vec[2])/efield_vec[3], 2);
+         Efield_t[1] *= exp(-0.5 * phase);
+      }
+      else{
+         Efield_t[0] = 0.0e0;
+         Efield_t[1] = 0.0e0;
+      }
+   }
+   else if(efield_flag == 2){
+      Efield_t[0] *= sin(efield_vec[4] * time);
+      Efield_t[1] *= sin(efield_vec[4] * timeaux);
+      if((time>efield_vec[0]) && (timeaux<efield_vec[1])){
+         phase = (time - efield_vec[0])/(efield_vec[1]-efield_vec[0]) * M_PI;
+         Efield_t[0] *= 0.5 * (1-cos(phase));
+         phase = (timeaux - efield_vec[0])/(efield_vec[1]-efield_vec[0]) * M_PI;
+         Efield_t[1] *= 0.5 * (1-cos(phase));
+      }
+      else if ((time>efield_vec[2]) && (timeaux<efield_vec[3])){
+         phase = (time - efield_vec[2])/(efield_vec[3]-efield_vec[2]) * M_PI;
+         Efield_t[0] *= 0.5 * (1+cos(phase));
+         phase = (timeaux - efield_vec[2])/(efield_vec[3]-efield_vec[2]) * M_PI;
+         Efield_t[1] *= 0.5 * (1+cos(phase));
+      }
+      else if((time<=efield_vec[0]) || (timeaux>=efield_vec[3])){
+         Efield_t[0] = 0.0e0;
+         Efield_t[1] = 0.0e0;
+      }
+   }
+   else if(efield_flag == 3){
+      if((timeaux>efield_vec[0]) && (timeaux<efield_vec[1])){
+         Efield_t[0] *= sin(efield_vec[4] * time);
+         Efield_t[1] *= sin(efield_vec[4] * timeaux);
+         phase = pow((time - efield_vec[2])/efield_vec[3], 2);
+         Efield_t[0] *= exp(-0.5 * phase);
+         phase = pow((timeaux - efield_vec[2])/efield_vec[3], 2);
+         Efield_t[1] *= exp(-0.5 * phase);
+      }
+      else{
+         Efield_t[0] = 0.0e0;
+         Efield_t[1] = 0.0e0;
+      }
+   }
+   return;
+}
