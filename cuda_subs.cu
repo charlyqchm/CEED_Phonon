@@ -415,8 +415,9 @@ double get_Qforces_cuda(cuDoubleComplex *dev_rhoin ,double *fb_vec,
 }
 //##############################################################################
 void runge_kutta_propagator_cuda(double mass_bath, double a_ceed, double dt,
-                                 double Efield, double *fb_vec, int tt,
-                                 UNINT n_el, UNINT n_phon, UNINT np_levels,
+                                 double Efield, double Efieldaux,
+                                 double *fb_vec, int tt, UNINT n_el,
+                                 UNINT n_phon, UNINT np_levels,
                                  UNINT n_tot, UNINT n_bath){
 
    const cuDoubleComplex alf1 = make_cuDoubleComplex(0.0e0, -0.5*dt);
@@ -426,9 +427,8 @@ void runge_kutta_propagator_cuda(double mass_bath, double a_ceed, double dt,
    double  partialvec[Ncores2];
    double  sum_xi;
    double  dth    = 0.5e0 * dt;
-   double Efield_t;
    double qforce;
-   double time = dt * tt;
+   //double time = dt * tt;
 
    cudaMalloc((void**) &dev_partialvec, Ncores2*sizeof(double));
 
@@ -444,11 +444,11 @@ void runge_kutta_propagator_cuda(double mass_bath, double a_ceed, double dt,
    }
    //---------------------------------------------------------------------------
 
-   Efield_t = Efield * exp(-pow(((time-10.0)/0.2),2.0));
+   //Efield_t = Efield * exp(-pow(((time-10.0)/0.2),2.0));
 
    //Building the new Hamiltonian at time = t ----------------------------------
    update_H_tot<<<Ncores1, Nthreads>>>(dev_Htot2, dev_Htot1, dev_mutot,
-                                       dev_vbath, dev_fb, sum_xi, Efield_t,
+                                       dev_vbath, dev_fb, sum_xi, Efield,
                                        n_el, n_phon, np_levels, n_tot);
    //Including CEED Hamiltonian:
    include_Hceed_cuda(dev_Htot3, dev_Htot2, dev_mutot, dev_rhotot, a_ceed,
@@ -481,10 +481,10 @@ void runge_kutta_propagator_cuda(double mass_bath, double a_ceed, double dt,
       sum_xi += partialvec[ii];
    }
 
-   Efield_t = Efield * exp(-pow(((time+dth-10.0)/0.2),2.0));
+   //Efield_t = Efield * exp(-pow(((time+dth-10.0)/0.2),2.0));
 
    update_H_tot<<<Ncores1, Nthreads>>>(dev_Htot2, dev_Htot1, dev_mutot,
-                                       dev_vbath, dev_fb, sum_xi, Efield_t,
+                                       dev_vbath, dev_fb, sum_xi, Efieldaux,
                                        n_el, n_phon, np_levels, n_tot);
 
    include_Hceed_cuda(dev_Htot3, dev_Htot2, dev_mutot, dev_rhoaux, a_ceed,
