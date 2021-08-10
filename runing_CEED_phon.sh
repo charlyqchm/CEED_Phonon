@@ -6,10 +6,10 @@
 #N_phon_levels =  20
 #N_bath       =  5000
 #Elec_levels  =  0.0 0.07
-#fb_vec       =  0.0 0.0
+#fb_vec       =  0.0 0.0 #λ = 1eV -> fb = 0.0072279/N_bath a.u.
 #Phon_freq    =  0.00734987
 #Phon_mass    =  3645.777
-#K0_bath      =  0.0
+#K0_bath      =  0.0 #1eV/A^2 = 0.010277 a.u.
 #K_ceed       =  0.0
 #Field_amp    =  0.0
 #Total_time   =  50000
