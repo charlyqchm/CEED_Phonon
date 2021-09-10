@@ -42,7 +42,7 @@ int main(){
    vector < complex<double> > rho_phon;
    vector < complex<double> > rho_tot;
 
-   ofstream outfile[7], output_test;
+   ofstream outfile[8], output_test;
 
    readinput(n_el, n_phon, np_levels, n_tot, n_bath, t_steps, print_t, dt,
                k0_inter, Efield, b_temp, a_ceed, seed, el_ener_vec,
@@ -81,7 +81,7 @@ int main(){
 
    init_output(outfile);
    write_output(mass_bath, dt, 0, print_t, n_el, n_phon, np_levels, n_tot,
-                n_bath, outfile);
+                n_bath, rho_tot, outfile);
 
 //Here the time propagation beguin:---------------------------------------------
    for(int tt=1; tt<= t_steps; tt++){
@@ -91,7 +91,7 @@ int main(){
                                   tt, n_el, n_phon, np_levels, n_tot, n_bath);
 
       write_output(mass_bath, dt, tt, print_t, n_el, n_phon, np_levels, n_tot,
-                   n_bath, outfile);
+                   n_bath, rho_tot, outfile);
 
    }
 //------------------------------------------------------------------------------
@@ -122,7 +122,7 @@ int main(){
    // //
    // output_test.close();
 
-   for (int ii=0; ii<7; ii++){
+   for (int ii=0; ii<8; ii++){
       outfile[ii].close();
    }
    free_cuda_memory();

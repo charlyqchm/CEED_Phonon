@@ -526,7 +526,8 @@ void getingmat(complex<double> *matA, cuDoubleComplex *dev_A, int n_tot){
 }
 //##############################################################################
 void getting_printing_info(double *Ener, double *mu, complex<double> *tr_rho,
-                           double *Ek_bath, UNINT n_tot, UNINT n_bath){
+                           double *Ek_bath, complex<double> *rho_tot,
+                           UNINT n_tot, UNINT n_bath){
 
    int dim2 = n_tot * n_tot;
    cuDoubleComplex *dev_aux1;
@@ -557,6 +558,9 @@ void getting_printing_info(double *Ener, double *mu, complex<double> *tr_rho,
    for (int ii=1; ii<Ncores2; ii++){
       *Ek_bath += 0.5e0 * partialvec[ii];
    }
+
+   cudaMemcpy(rho_tot, dev_rhotot, n_tot*n_tot*sizeof(cuDoubleComplex),
+   cudaMemcpyDeviceToHost);
 
    cudaFree(dev_vec);
    cudaFree(dev_aux1);

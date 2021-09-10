@@ -361,13 +361,14 @@ void init_output(ofstream* outfile){
     outfile[4].open("rho_elec.out");
     outfile[5].open("rho_phon.out");
     outfile[6].open("Ek_bath.out");
+    outfile[7].open("total_rho.out");
 
     return;
 }
 //##############################################################################
 void write_output(double mass_bath, double dt, int tt, int print_t, UNINT n_el,
                   UNINT n_phon, UNINT np_levels, UNINT n_tot, UNINT n_bath,
-                  ofstream* outfile){
+                  vector < complex<double> >& rho_tot, ofstream* outfile){
 
    double Ener, mu, trace_rho, Ek_bath;
    vector<double> tr_rho_el(n_el, 0.0e0);
@@ -375,8 +376,9 @@ void write_output(double mass_bath, double dt, int tt, int print_t, UNINT n_el,
    vector< complex<double> > tr_rho(n_tot,0.0e0);
 
    if(tt%print_t==0){
-      getting_printing_info( & Ener, & mu, & *tr_rho.begin(), & Ek_bath, n_tot,
-                            n_bath);
+      getting_printing_info( & Ener, & mu, & *tr_rho.begin(), & Ek_bath,
+                             & *rho_tot.begin(), n_tot, n_bath);
+                             
       outfile[0]<<Ener<<endl;
       outfile[1]<<mu<<endl;
       outfile[2]<< tt*dt <<endl;
@@ -400,6 +402,14 @@ void write_output(double mass_bath, double dt, int tt, int print_t, UNINT n_el,
          outfile[5]<<"   "<<jj<<"   "<<tr_rho_ph[jj]<<endl;
       }
       outfile[6]<<mass_bath*Ek_bath/n_bath<<endl;
+
+      for(int jj=0; jj<n_tot; jj++){
+      for(int ii=jj; ii<n_tot; ii++){
+         int ind1 = ii + jj*n_tot;
+         outfile[7]<<ii<<"   "<<jj<<"   "<<rho_tot[ind1].real()<<endl;
+      }
+      }
+
    }
    return;
 }

@@ -100,7 +100,7 @@ void init_output(ofstream* outfile);
 
 void write_output(double mass_bath, double dt, int tt, int print_t, UNINT n_el,
                   UNINT n_phon, UNINT np_levels, UNINT n_tot, UNINT n_bath,
-                  ofstream* outfile);
+                  vector < complex<double> >& rho_tot, ofstream* outfile);
 
 void readinput(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
                  UNINT& n_bath, int& t_steps, int& print_t, double& dt,
