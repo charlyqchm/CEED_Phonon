@@ -342,7 +342,7 @@ void init_bath(UNINT n_bath, double temp, double bmass, double bfreq,
    vector<double>& ki_vec){
    srand(seed);
 
-   double stdev = sqrt(temp/bmass);
+   double stdev = sqrt(temp/bmass*8.6173324e-5/27.2113862);
    double ki = bfreq * bfreq;
 
    for(int ii=0; ii<n_bath; ii++){
@@ -378,7 +378,7 @@ void write_output(double mass_bath, double dt, int tt, int print_t, UNINT n_el,
    if(tt%print_t==0){
       getting_printing_info( & Ener, & mu, & *tr_rho.begin(), & Ek_bath,
                              & *rho_tot.begin(), n_tot, n_bath);
-                             
+
       outfile[0]<<Ener<<endl;
       outfile[1]<<mu<<endl;
       outfile[2]<< tt*dt <<endl;
