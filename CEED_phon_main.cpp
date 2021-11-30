@@ -8,16 +8,26 @@ int main(){
    UNINT                      np_levels;
    UNINT                      n_tot;
    UNINT                      n_bath;
+   UNINT                      n_ke_bath;
+   UNINT                      n_ke_inter;
    int                        t_steps;
    int                        print_t;
    int                        seed;
    int                        efield_flag = -1;
    double                     dt;
    double                     k0_inter;//interaction constant bath-phonons
+   double                     k0_ke_inter;
+   double                     sigma_ke;
    double                     a_ceed   = 2.0/3.0 * 1.0/pow(137.0,3.0);
    double                     Efield;
    double                     b_temp;
    double                     mass_bath;
+   vector<int>                ke_index_i;
+   vector<int>                ke_index_j;
+   vector<int>                ke_index_k;
+   vector<double>             ke_delta1_vec;
+   vector<double>             ke_delta2_vec;
+   vector<double>             ke_N_phon_vec;
    vector<double>             el_ener_vec;
    vector<double>             fb_vec;
    vector<double>             ki_vec;      //bath string constants
@@ -36,6 +46,11 @@ int main(){
    vector<double>             eigen_coefT;
    vector<double>             efield_vec;
    vector<double>             Efield_t;
+   vector<double>             w_ke_vec;
+   vector<double>             eta_l_vec;
+   vector<double>             lambda_l_vec;
+   vector<double>             eta_s_vec;
+   vector<double>             lambda_s_vec;
    vector < complex<double> > H_tot;
    vector < complex<double> > dVdX_mat;
    vector < complex<double> > mu_tot;
@@ -45,16 +60,16 @@ int main(){
    ofstream outfile[8], output_test;
 
    readinput(n_el, n_phon, np_levels, n_tot, n_bath, t_steps, print_t, dt,
-               k0_inter, Efield, b_temp, a_ceed, seed, el_ener_vec,
-               w_phon_vec, mass_phon_vec, fb_vec);
-
+               k0_inter, Efield, b_temp, a_ceed, seed, n_ke_bath, sigma_ke,
+               k0_ke_inter, el_ener_vec, w_phon_vec, mass_phon_vec, fb_vec);
 //Dirty thing:
    mass_bath = mass_phon_vec[0];
 
    init_matrix(H_tot, H0_mat, Hcoup_mat, Fcoup_mat, mu_elec_mat, mu_phon_mat,
                v_bath_mat, mu_tot, dVdX_mat, ki_vec, xi_vec, vi_vec, Efield_t,
                eigen_E, eigen_coef, eigen_coefT, rho_phon, rho_tot,
-               n_tot, n_el, n_phon, np_levels, n_bath);
+               n_tot, n_el, n_phon, np_levels, n_bath, n_ke_bath, w_ke_vec,
+               eta_s_vec, lambda_s_vec);
 
    read_matrix_inputs(n_el, n_phon, np_levels, n_tot, Fcoup_mat, mu_elec_mat);
    readefield(efield_flag, efield_vec);
@@ -69,15 +84,31 @@ int main(){
    }
    }
 
+//charly: we recover the diagonal element of H in eigen_E
+
+   for(int ii=0; ii < n_tot; ii++){
+      eigen_E[ii] = H0_mat[ii+ii*n_tot];
+   }
+
    build_rho_matrix(rho_tot, eigen_coef, eigen_coefT, n_tot);
 
    init_bath(n_bath, b_temp, mass_bath, w_phon_vec[0], 1, seed,
-             xi_vec, vi_vec, ki_vec);
+             xi_vec, vi_vec, ki_vec, n_ke_bath, w_ke_vec);
+
+   creating_ke_bath(n_ke_bath, w_ke_vec, ke_N_phon_vec, b_temp);
+
+   getting_ke_terms(n_tot, n_ke_bath, n_ke_inter, mass_bath,
+                    ke_index_i, ke_index_j, ke_index_k, sigma_ke,
+                    k0_ke_inter, eigen_E, w_ke_vec,
+                    ke_delta1_vec, ke_delta2_vec, eta_l_vec, lambda_l_vec);
 
    init_cuda(& *H_tot.begin(), & *mu_tot.begin(), & *v_bath_mat.begin(),
              & *fb_vec.begin(), & *xi_vec.begin(), & *vi_vec.begin(),
              & *ki_vec.begin(), & *rho_tot.begin(), & *rho_phon.begin(),
-             & *dVdX_mat.begin(), n_el, n_phon, np_levels, n_tot, n_bath);
+             & *dVdX_mat.begin(), & *ke_index_i.begin(), & *ke_index_j.begin(),
+             & *ke_index_k.begin(), & *ke_delta1_vec.begin(),
+             & *ke_delta2_vec.begin(), & *ke_N_phon_vec.begin(),
+             n_el, n_phon, np_levels, n_tot, n_bath, n_ke_bath, n_ke_inter);
 
    init_output(outfile);
    write_output(mass_bath, dt, 0, print_t, n_el, n_phon, np_levels, n_tot,
@@ -88,7 +119,10 @@ int main(){
       efield_t(efield_flag, tt, dt, Efield, efield_vec, Efield_t);
       runge_kutta_propagator_cuda(mass_bath, a_ceed, dt, Efield_t[0],
                                   Efield_t[1], & *fb_vec.begin(),
-                                  tt, n_el, n_phon, np_levels, n_tot, n_bath);
+                                  & *eta_s_vec.begin(), & *lambda_s_vec.begin(),
+                                  & *eta_l_vec.begin(), & *lambda_l_vec.begin(),
+                                  & *ke_index_i.begin(), tt, n_el, n_phon,
+                                  np_levels, n_tot, n_bath, n_ke_inter);
 
       write_output(mass_bath, dt, tt, print_t, n_el, n_phon, np_levels, n_tot,
                    n_bath, rho_tot, outfile);

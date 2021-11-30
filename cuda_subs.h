@@ -8,6 +8,7 @@
 #include <ctime>
 #include <cstdlib>
 #include <complex>
+#include <stdio.h>
 
 using namespace std;
 typedef unsigned int UNINT;
@@ -30,8 +31,18 @@ extern double           *dev_ki;
 extern double           *dev_xf;
 extern double           *dev_vf;
 extern double           *dev_xh;
+extern double           *dev_etaL_ke;
+extern double           *dev_lambdaL_ke;
+extern double           *dev_etaS_ke;
+extern double           *dev_lambdaS_ke;
+extern double           *dev_ke_del1;
+extern double           *dev_ke_del2;
+extern double           *dev_Nphon_ke;
+extern int              *dev_keind_j;
+extern int              *dev_keind_k;
 extern UNINT             Ncores1;
 extern UNINT             Ncores2;
+extern UNINT             Ncores3;
 const  UNINT             Nthreads = 512;
 
 void init_cuda(complex<double> *H_tot, complex<double> *mu_tot,
@@ -39,8 +50,11 @@ void init_cuda(complex<double> *H_tot, complex<double> *mu_tot,
                double *vi_vec, double *ki_vec,
                complex<double> *rho_tot,
                complex<double> *rho_phon, complex<double> *dVdX_mat,
+               int *ke_index_i, int *ke_index_j, int *ke_index_k,
+               double *ke_delta1_vec, double *ke_delta2_vec,
+               double *ke_N_phon_vec,
                UNINT n_el, UNINT n_phon, UNINT np_levels, UNINT n_tot,
-               UNINT n_bath);
+               UNINT n_bath, UNINT n_ke_bath, UNINT n_ke_inter);
 
 void free_cuda_memory();
 
@@ -63,11 +77,19 @@ void include_Hceed_cuda(cuDoubleComplex *dev_Hout, cuDoubleComplex *dev_Hin,
 double get_Qforces_cuda(cuDoubleComplex *dev_rhoin ,double *fb_vec,
                         UNINT n_el, UNINT n_phon, UNINT np_levels, UNINT n_tot);
 
+void include_ke_terms(cuDoubleComplex *dev_rho, cuDoubleComplex *dev_Drho,
+                      int *ke_index_i, double *eta_s_vec,
+                      double *lambda_s_vec, double *eta_l_vec,
+                      double *lambda_l_vec, UNINT n_tot, UNINT n_ke_inter);
+
 void runge_kutta_propagator_cuda(double mass_bath, double a_ceed, double dt,
                                  double Efield, double Efieldaux,
-                                 double *fb_vec, int tt, UNINT n_el,
+                                 double *fb_vec, double *eta_s_vec,
+                                 double *lambda_s_vec, double *eta_l_vec,
+                                 double *lambda_l_vec, int *ke_index_i,
+                                 int tt, UNINT n_el,
                                  UNINT n_phon, UNINT np_levels,
-                                 UNINT n_tot, UNINT n_bath);
+                                 UNINT n_tot, UNINT n_bath, UNINT n_ke_inter);
 
 void calcrhophon(cuDoubleComplex *dev_rhoin, int n_el, int n_phon,
                  int np_levels, int n_tot);

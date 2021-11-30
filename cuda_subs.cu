@@ -18,8 +18,18 @@ double           *dev_ki;
 double           *dev_xf;
 double           *dev_vf;
 double           *dev_xh;
+double           *dev_etaL_ke;
+double           *dev_lambdaL_ke;
+double           *dev_etaS_ke;
+double           *dev_lambdaS_ke;
+double           *dev_ke_del1;
+double           *dev_ke_del2;
+double           *dev_Nphon_ke;
+int              *dev_keind_j;
+int              *dev_keind_k;
 UNINT             Ncores1;
 UNINT             Ncores2;
+UNINT             Ncores3;
 
 //##############################################################################
 // This function build the Hamiltonian without CEED:
@@ -179,13 +189,60 @@ __global__ void update_vec(double *vecA, double *vecB, int dim){
    return;
 }
 //##############################################################################
+__global__ void get_long_ke_vectors(cuDoubleComplex *rho, double *ke_N_phon,
+                                    double *eta_long, double *lambda_long,
+                                    double *ke_del1, double *ke_del2,
+                                    int *ke_ind_j, int *ke_ind_k,
+                                    int n_tot, int n_ke_inter){
+
+   int ind     = threadIdx.x + blockIdx.x * blockDim.x;
+
+   if (ind < n_ke_inter){
+      int jj      = ke_ind_j[ind];
+      int kk      = ke_ind_k[ind];
+      double del1 = ke_del1[ind];
+      double del2 = ke_del2[ind];
+      double f2   = cuCreal(rho[jj + jj * n_tot]);
+      double Nj   = ke_N_phon[kk];
+
+      eta_long[ind]    = -((Nj + f2) * del1 + (Nj - f2 + 1.0e0) * del2);
+      lambda_long[ind] = f2*((Nj + 1.0e0) * del1 + Nj * del2);
+   }
+
+   return;
+}
+//##############################################################################
+__global__ void apply_ke_term(cuDoubleComplex *rho, cuDoubleComplex *Drho,
+                              double *eta_short, double *lambda_short,
+                              int n_tot){
+
+   int ind  = threadIdx.x + blockIdx.x * blockDim.x;
+   int dim2 = n_tot  * n_tot;
+   int i1   = ind / n_tot;
+   if ((ind == i1 + i1*n_tot) && (ind < dim2)){
+      cuDoubleComplex aux1 = make_cuDoubleComplex(eta_short[i1], 0.0e0);
+      cuDoubleComplex aux2 = make_cuDoubleComplex(lambda_short[i1], 0.0e0);
+      cuDoubleComplex aux3;
+      cuDoubleComplex aux4;
+
+      aux3 = cuCmul(aux1,rho[i1+i1*n_tot]);
+      aux4 = cuCadd(aux3,aux2);
+      Drho[i1+i1*n_tot] = cuCadd(Drho[i1+i1*n_tot], aux4);
+   }
+   return;
+}
+
+//##############################################################################
 void init_cuda(complex<double> *H_tot, complex<double> *mu_tot,
                double *v_bath_mat, double *fb_vec, double *xi_vec,
                double *vi_vec, double *ki_vec,
                complex<double> *rho_tot,
                complex<double> *rho_phon, complex<double> *dVdX_mat,
+               int *ke_index_i, int *ke_index_j, int *ke_index_k,
+               double *ke_delta1_vec, double *ke_delta2_vec,
+               double *ke_N_phon_vec,
                UNINT n_el, UNINT n_phon, UNINT np_levels, UNINT n_tot,
-               UNINT n_bath){
+               UNINT n_bath, UNINT n_ke_bath, UNINT n_ke_inter){
 
    double gaux = (double) (n_tot*n_tot);
    double taux = (double) Nthreads;
@@ -193,6 +250,8 @@ void init_cuda(complex<double> *H_tot, complex<double> *mu_tot,
    Ncores1 = (UNINT) ceil(gaux/taux);
    gaux    = (double) (n_bath);
    Ncores2 = (UNINT) ceil(gaux/taux);
+   gaux    = (double) (n_ke_inter);
+   Ncores3 = (UNINT) ceil(gaux/taux);
 
    int dimaux  = n_phon * n_phon * np_levels * np_levels;
 
@@ -206,14 +265,24 @@ void init_cuda(complex<double> *H_tot, complex<double> *mu_tot,
    cudaMalloc((void**) &dev_Drho   , n_tot*n_tot*sizeof(cuDoubleComplex));
    cudaMalloc((void**) &dev_rhophon, dimaux*sizeof(cuDoubleComplex));
    cudaMalloc((void**) &dev_dvdx   , dimaux*sizeof(cuDoubleComplex));
-   cudaMalloc((void**) &dev_vbath  , n_tot*n_tot*sizeof(double));
-   cudaMalloc((void**) &dev_fb     , n_el*sizeof(double));
-   cudaMalloc((void**) &dev_xi     , n_bath*sizeof(double));
-   cudaMalloc((void**) &dev_vi     , n_bath*sizeof(double));
-   cudaMalloc((void**) &dev_ki     , n_bath*sizeof(double));
-   cudaMalloc((void**) &dev_xf     , n_bath*sizeof(double));
-   cudaMalloc((void**) &dev_vf     , n_bath*sizeof(double));
-   cudaMalloc((void**) &dev_xh     , n_bath*sizeof(double));
+   cudaMalloc((void**) &dev_vbath     , n_tot*n_tot*sizeof(double));
+   cudaMalloc((void**) &dev_fb        , n_el*sizeof(double));
+   cudaMalloc((void**) &dev_xi        , n_bath*sizeof(double));
+   cudaMalloc((void**) &dev_vi        , n_bath*sizeof(double));
+   cudaMalloc((void**) &dev_ki        , n_bath*sizeof(double));
+   cudaMalloc((void**) &dev_xf        , n_bath*sizeof(double));
+   cudaMalloc((void**) &dev_vf        , n_bath*sizeof(double));
+   cudaMalloc((void**) &dev_xh        , n_bath*sizeof(double));
+   cudaMalloc((void**) &dev_etaL_ke   , n_ke_inter*sizeof(double));
+   cudaMalloc((void**) &dev_lambdaL_ke, n_ke_inter*sizeof(double));
+   cudaMalloc((void**) &dev_etaS_ke   , n_tot*sizeof(double));
+   cudaMalloc((void**) &dev_lambdaS_ke, n_tot*sizeof(double));
+   cudaMalloc((void**) &dev_ke_del1   , n_ke_inter*sizeof(double));
+   cudaMalloc((void**) &dev_ke_del2   , n_ke_inter*sizeof(double));
+   cudaMalloc((void**) &dev_Nphon_ke  , n_ke_bath*sizeof(double));
+   cudaMalloc((void**) &dev_keind_j   , n_ke_inter*sizeof(int));
+   cudaMalloc((void**) &dev_keind_k   , n_ke_inter*sizeof(int));
+
 
    cudaMemcpy(dev_Htot1, H_tot, n_tot*n_tot*sizeof(cuDoubleComplex),
               cudaMemcpyHostToDevice);
@@ -231,6 +300,16 @@ void init_cuda(complex<double> *H_tot, complex<double> *mu_tot,
    cudaMemcpy(dev_xi, xi_vec, n_bath*sizeof(double), cudaMemcpyHostToDevice);
    cudaMemcpy(dev_vi, vi_vec, n_bath*sizeof(double), cudaMemcpyHostToDevice);
    cudaMemcpy(dev_ki, ki_vec, n_bath*sizeof(double), cudaMemcpyHostToDevice);
+   cudaMemcpy(dev_ke_del1, ke_delta1_vec, n_ke_inter*sizeof(double),
+              cudaMemcpyHostToDevice);
+   cudaMemcpy(dev_ke_del2, ke_delta2_vec, n_ke_inter*sizeof(double),
+              cudaMemcpyHostToDevice);
+   cudaMemcpy(dev_Nphon_ke, ke_N_phon_vec, n_ke_bath*sizeof(double),
+              cudaMemcpyHostToDevice);
+   cudaMemcpy(dev_keind_j, ke_index_j, n_ke_inter*sizeof(int),
+              cudaMemcpyHostToDevice);
+   cudaMemcpy(dev_keind_k, ke_index_k, n_ke_inter*sizeof(int),
+              cudaMemcpyHostToDevice);
 
    return;
 }
@@ -255,6 +334,15 @@ void free_cuda_memory(){
    cudaFree(dev_xh);
    cudaFree(dev_vi);
    cudaFree(dev_vf);
+   cudaFree(dev_etaL_ke);
+   cudaFree(dev_lambdaL_ke);
+   cudaFree(dev_etaS_ke);
+   cudaFree(dev_lambdaS_ke);
+   cudaFree(dev_ke_del1);
+   cudaFree(dev_ke_del2);
+   cudaFree(dev_Nphon_ke);
+   cudaFree(dev_keind_j);
+   cudaFree(dev_keind_k);
 
    return;
 }
@@ -414,15 +502,59 @@ double get_Qforces_cuda(cuDoubleComplex *dev_rhoin ,double *fb_vec,
    return qforce;
 }
 //##############################################################################
+void include_ke_terms(cuDoubleComplex *dev_rho, cuDoubleComplex *dev_drdt,
+                      int *ke_index_i, double *eta_s_vec,
+                      double *lambda_s_vec, double *eta_l_vec,
+                      double *lambda_l_vec, UNINT n_tot, UNINT n_ke_inter){
+
+      get_long_ke_vectors<<<Ncores3, Nthreads>>>(dev_rho, dev_Nphon_ke,
+                            dev_etaL_ke, dev_lambdaL_ke, dev_ke_del1,
+                            dev_ke_del2, dev_keind_j, dev_keind_k,
+                            n_tot, n_ke_inter);
+
+      cudaMemcpy(eta_l_vec, dev_etaL_ke, n_ke_inter*sizeof(double),
+                 cudaMemcpyDeviceToHost);
+      cudaMemcpy(lambda_l_vec, dev_lambdaL_ke, n_ke_inter*sizeof(double),
+                 cudaMemcpyDeviceToHost);
+
+      for(int ii=0; ii<n_tot; ii++){
+         eta_s_vec[ii] = 0.0e0;
+         lambda_s_vec[ii] = 0.0e0;
+      }
+
+      for(int ii=0; ii<n_ke_inter; ii++){
+         int ind_i = ke_index_i[ii];
+
+         eta_s_vec[ind_i]    += eta_l_vec[ii];
+         lambda_s_vec[ind_i] += lambda_l_vec[ii];
+      }
+
+      // printf("%f",lambda_s_vec[11]);
+
+      cudaMemcpy(dev_etaS_ke, eta_s_vec, n_tot*sizeof(double),
+                 cudaMemcpyHostToDevice);
+      cudaMemcpy(dev_lambdaS_ke, lambda_s_vec, n_tot*sizeof(double),
+                 cudaMemcpyHostToDevice);
+
+      apply_ke_term<<<Ncores1, Nthreads>>>(dev_rho, dev_drdt, dev_etaS_ke,
+                                           dev_lambdaS_ke, n_tot);
+
+      return;
+}
+//##############################################################################
 void runge_kutta_propagator_cuda(double mass_bath, double a_ceed, double dt,
                                  double Efield, double Efieldaux,
-                                 double *fb_vec, int tt, UNINT n_el,
+                                 double *fb_vec, double *eta_s_vec,
+                                 double *lambda_s_vec, double *eta_l_vec,
+                                 double *lambda_l_vec, int *ke_index_i,
+                                 int tt, UNINT n_el,
                                  UNINT n_phon, UNINT np_levels,
-                                 UNINT n_tot, UNINT n_bath){
+                                 UNINT n_tot, UNINT n_bath, UNINT n_ke_inter){
 
-   const cuDoubleComplex alf1 = make_cuDoubleComplex(0.0e0, -0.5*dt);
-   const cuDoubleComplex alf2 = make_cuDoubleComplex(0.0e0, -dt);
+   const cuDoubleComplex alf1 = make_cuDoubleComplex(0.5*dt,0.0e0);
+   const cuDoubleComplex alf2 = make_cuDoubleComplex(dt, 0.0e0);
    const cuDoubleComplex alf3 = make_cuDoubleComplex(1.0e0, 0.0e0);
+   const cuDoubleComplex alf4 = make_cuDoubleComplex(0.0e0, -1.0e0);
    double *dev_partialvec;
    double  partialvec[Ncores2];
    double  sum_xi;
@@ -456,7 +588,9 @@ void runge_kutta_propagator_cuda(double mass_bath, double a_ceed, double dt,
    //---------------------------------------------------------------------------
 
    //Calculating rho(t+dt/2) using LvN------------------------------------------
-   commute_cuda(dev_Htot3, dev_rhotot, dev_Drho, n_tot, alf3);
+   commute_cuda(dev_Htot3, dev_rhotot, dev_Drho, n_tot, alf4);
+   include_ke_terms(dev_rhotot, dev_Drho, ke_index_i, eta_s_vec, lambda_s_vec,
+                    eta_l_vec, lambda_l_vec, n_tot, n_ke_inter);
    matadd_cublas(dev_rhotot, dev_Drho, dev_rhoaux, n_tot, alf3, alf1);
    //---------------------------------------------------------------------------
    //Calculating x(t+dt/2) and v(t+dt/2) using the Quantum forces --------------
@@ -490,7 +624,9 @@ void runge_kutta_propagator_cuda(double mass_bath, double a_ceed, double dt,
    include_Hceed_cuda(dev_Htot3, dev_Htot2, dev_mutot, dev_rhoaux, a_ceed,
                       n_tot);
 
-   commute_cuda(dev_Htot3, dev_rhoaux, dev_Drho, n_tot, alf3);
+   commute_cuda(dev_Htot3, dev_rhoaux, dev_Drho, n_tot, alf4);
+   include_ke_terms(dev_rhoaux, dev_Drho, ke_index_i, eta_s_vec, lambda_s_vec,
+                    eta_l_vec, lambda_l_vec, n_tot, n_ke_inter);
    matadd_cublas(dev_rhotot, dev_Drho, dev_rhonew, n_tot, alf3, alf2);
 
    qforce = get_Qforces_cuda(dev_rhoaux , fb_vec, n_el, n_phon, np_levels,
