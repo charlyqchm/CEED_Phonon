@@ -112,6 +112,7 @@ void efield_t(int efield_flag, int tt, double dt, double Efield,
                  vector<double> efield_vec, vector<double>& Efield_t);
 
 void getting_ke_terms(UNINT n_tot, UNINT n_ke_bath, UNINT& n_ke_inter,
+                      UNINT n_el, UNINT n_phon, UNINT& np_levels,
                       double mass_bath, vector<int>& ke_index_i,
                       vector<int>& ke_index_j, vector<int>& ke_index_k,
                       double sigma_ke, double k0_ke_inter,

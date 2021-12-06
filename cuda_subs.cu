@@ -219,15 +219,22 @@ __global__ void apply_ke_term(cuDoubleComplex *rho, cuDoubleComplex *Drho,
    int ind  = threadIdx.x + blockIdx.x * blockDim.x;
    int dim2 = n_tot  * n_tot;
    int i1   = ind / n_tot;
-   if ((ind == i1 + i1*n_tot) && (ind < dim2)){
+   int i2   = ind - i1*n_tot;
+   if ((ind == i2 + i1*n_tot) && (ind < dim2)){
+   // if ((ind == i1 + i1*n_tot) && (ind < dim2)){
       cuDoubleComplex aux1 = make_cuDoubleComplex(eta_short[i1], 0.0e0);
-      cuDoubleComplex aux2 = make_cuDoubleComplex(lambda_short[i1], 0.0e0);
+      cuDoubleComplex aux2 = make_cuDoubleComplex(eta_short[i2], 0.0e0);
       cuDoubleComplex aux3;
-      cuDoubleComplex aux4;
-
-      aux3 = cuCmul(aux1,rho[i1+i1*n_tot]);
-      aux4 = cuCadd(aux3,aux2);
-      Drho[i1+i1*n_tot] = cuCadd(Drho[i1+i1*n_tot], aux4);
+      cuDoubleComplex aux4 = make_cuDoubleComplex(0.5e0, 0.0e0);
+      cuDoubleComplex aux5 = make_cuDoubleComplex(0.0e0,0.0e0);
+      aux3 = cuCadd(aux1,aux2);
+      aux3 = cuCmul(aux4,aux3);
+      aux3 = cuCmul(aux3,rho[i2+i1*n_tot]);
+      if (ind == i1 + i1*n_tot){
+         aux5 = make_cuDoubleComplex(lambda_short[i1], 0.0e0);
+      }
+      aux5 = cuCadd(aux3,aux5);
+      Drho[i2+i1*n_tot] = cuCadd(Drho[i2+i1*n_tot], aux5);
    }
    return;
 }

@@ -179,7 +179,7 @@ void build_rho_matrix(vector < complex<double> >& rho_tot,
    vector<double> rho_real(n_tot*n_tot, 0.0e0);
    vector<double> auxmat1(n_tot*n_tot, 0.0e0);
 
-   rho_real[5+5*n_tot] = 1.0e0;
+   rho_real[24+24*n_tot] = 1.0e0;
 
    // matmul_blas(rho_real, eigen_coefT, auxmat1, n_tot);
    // matmul_blas(eigen_coef, auxmat1, rho_real, n_tot);
@@ -647,6 +647,7 @@ void efield_t(int efield_flag, int tt, double dt, double Efield,
 }
 //##############################################################################
 void getting_ke_terms(UNINT n_tot, UNINT n_ke_bath, UNINT& n_ke_inter,
+                      UNINT n_el, UNINT n_phon, UNINT& np_levels,
                       double mass_bath, vector<int>& ke_index_i,
                       vector<int>& ke_index_j, vector<int>& ke_index_k,
                       double sigma_ke, double k0_ke_inter,
@@ -660,30 +661,36 @@ void getting_ke_terms(UNINT n_tot, UNINT n_ke_bath, UNINT& n_ke_inter,
    const double pi = 3.141592653589793;
    n_ke_inter = 0;
 
-   for (int ii=0; ii<n_tot; ii++){
-   for (int jj=0; jj<n_tot; jj++){
-      if(ii != jj){
-         for (int kk=0; kk<n_ke_bath; kk++){
-            double aux1, exp1, exp2;
-            double Ea   = eigen_E[ii];
-            double Eb   = eigen_E[jj];
-            double wj   = w_ke_vec[kk];
-            aux1 = pow(k0_ke_inter, 2.0) * pi / (wj * mass_bath);
-            exp1 = dirac_delta(Ea, Eb, wj, sigma_ke);
-            exp2 = dirac_delta(Ea, Eb, -wj, sigma_ke);
-            bool acceptable;
-            acceptable = (aux1*exp1 > 1.0e-6) || (aux1*exp2 > 1.0e-6);
-            if (acceptable){
-               ke_index_i.push_back(ii);
-               ke_index_j.push_back(jj);
-               ke_index_k.push_back(kk);
-               ke_delta1_vec.push_back(aux1*exp1);
-               ke_delta2_vec.push_back(aux1*exp2);
-               eta_l_vec.push_back(0.0e0);
-               lambda_l_vec.push_back(0.0e0);
-               n_ke_inter += 1;
+   for (int ee=0; ee<n_el; ee++){
+   for (int pp=0; pp<n_phon; pp++){
+      for (int ii=0; ii<np_levels; ii++){
+      for (int jj=0; jj<np_levels; jj++){
+         if(ii != jj){
+            int ind_i = ii + pp * np_levels + ee * np_levels * n_phon;
+            int ind_j = jj + pp * np_levels + ee * np_levels * n_phon;
+            for (int kk=0; kk<n_ke_bath; kk++){
+               double aux1, exp1, exp2;
+               double Ea   = eigen_E[ind_i];
+               double Eb   = eigen_E[ind_j];
+               double wj   = w_ke_vec[kk];
+               aux1 = pow(k0_ke_inter, 2.0) * pi / (wj * mass_bath);
+               exp1 = dirac_delta(Ea, Eb, wj, sigma_ke);
+               exp2 = dirac_delta(Ea, Eb, -wj, sigma_ke);
+               bool acceptable;
+               acceptable = (aux1*exp1 > 1.0e-6) || (aux1*exp2 > 1.0e-6);
+               if (acceptable){
+                  ke_index_i.push_back(ind_i);
+                  ke_index_j.push_back(ind_j);
+                  ke_index_k.push_back(kk);
+                  ke_delta1_vec.push_back(aux1*exp1);
+                  ke_delta2_vec.push_back(aux1*exp2);
+                  eta_l_vec.push_back(0.0e0);
+                  lambda_l_vec.push_back(0.0e0);
+                  n_ke_inter += 1;
+               }
             }
          }
+      }
       }
    }
    }

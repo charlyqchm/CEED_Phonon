@@ -97,8 +97,8 @@ int main(){
 
    creating_ke_bath(n_ke_bath, w_ke_vec, ke_N_phon_vec, b_temp);
 
-   getting_ke_terms(n_tot, n_ke_bath, n_ke_inter, mass_bath,
-                    ke_index_i, ke_index_j, ke_index_k, sigma_ke,
+   getting_ke_terms(n_tot, n_ke_bath, n_ke_inter, n_el, n_phon, np_levels,
+                    mass_bath, ke_index_i, ke_index_j, ke_index_k, sigma_ke,
                     k0_ke_inter, eigen_E, w_ke_vec,
                     ke_delta1_vec, ke_delta2_vec, eta_l_vec, lambda_l_vec);
 
