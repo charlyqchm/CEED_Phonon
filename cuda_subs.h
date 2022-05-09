@@ -22,15 +22,6 @@ extern cuDoubleComplex  *dev_Htot1;
 extern cuDoubleComplex  *dev_Htot2;
 extern cuDoubleComplex  *dev_Htot3;
 extern cuDoubleComplex  *dev_mutot;
-extern cuDoubleComplex  *dev_dvdx;
-extern double           *dev_vbath;
-extern double           *dev_fb;
-extern double           *dev_xi;
-extern double           *dev_vi;
-extern double           *dev_ki;
-extern double           *dev_xf;
-extern double           *dev_vf;
-extern double           *dev_xh;
 extern double           *dev_etaL_ke;
 extern double           *dev_lambdaL_ke;
 extern double           *dev_etaS_ke;
@@ -46,15 +37,13 @@ extern UNINT             Ncores3;
 const  UNINT             Nthreads = 512;
 
 void init_cuda(complex<double> *H_tot, complex<double> *mu_tot,
-               double *v_bath_mat, double *fb_vec, double *xi_vec,
-               double *vi_vec, double *ki_vec,
                complex<double> *rho_tot,
-               complex<double> *rho_phon, complex<double> *dVdX_mat,
+               complex<double> *rho_phon,
                int *ke_index_i, int *ke_index_j, int *ke_index_k,
                double *ke_delta1_vec, double *ke_delta2_vec,
                double *ke_N_phon_vec,
                UNINT n_el, UNINT n_phon, UNINT np_levels, UNINT n_tot,
-               UNINT n_bath, UNINT n_ke_bath, UNINT n_ke_inter);
+               UNINT n_ke_bath, UNINT n_ke_inter);
 
 void free_cuda_memory();
 
@@ -84,19 +73,18 @@ void include_ke_terms(cuDoubleComplex *dev_rho, cuDoubleComplex *dev_Drho,
 
 void runge_kutta_propagator_cuda(double mass_bath, double a_ceed, double dt,
                                  double Efield, double Efieldaux,
-                                 double *fb_vec, double *eta_s_vec,
+                                 double *eta_s_vec,
                                  double *lambda_s_vec, double *eta_l_vec,
                                  double *lambda_l_vec, int *ke_index_i,
                                  int tt, UNINT n_el,
                                  UNINT n_phon, UNINT np_levels,
-                                 UNINT n_tot, UNINT n_bath, UNINT n_ke_inter);
+                                 UNINT n_tot, UNINT n_ke_inter);
 
 void calcrhophon(cuDoubleComplex *dev_rhoin, int n_el, int n_phon,
                  int np_levels, int n_tot);
 void getingmat(complex<double> *matA, cuDoubleComplex *dev_A, int n_tot);
 
 void getting_printing_info(double *Ener, double *mu, complex<double> *tr_rho,
-                           double *Ek_bath, complex<double> *rho_tot,
-                           UNINT n_tot, UNINT n_bath);
+                           complex<double> *rho_tot, UNINT n_tot);
 
 #endif
