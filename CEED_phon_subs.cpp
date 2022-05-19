@@ -100,9 +100,9 @@ void init_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
                  vector < complex<double> >& rho_phon,
                  vector < complex<double> >& rho_tot,
                  UNINT n_tot, UNINT n_el, UNINT n_phon, UNINT np_levels,
-                 UNINT n_ke_bath, vector<double>& w_ke_vec,
-                 vector<double>& eta_s_vec, vector<double>& lambda_s_vec,
-                 vector<double>& Fbath_mat){
+                 vector<double>& Fbath_mat,
+                 vector < complex<double> >& X_phon_mat,
+                 vector < complex<double> >& P_phon_mat){
 
    for(int ii=0; ii<(n_tot*n_tot); ii++){
       H0_mat.push_back(0.0e0);
@@ -114,12 +114,12 @@ void init_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
       mu_tot.push_back((0.0e0, 0.0e0));
       H_tot.push_back((0.0e0, 0.0e0));
       rho_tot.push_back((0.0e0, 0.0e0));
+      X_phon_mat.push_back((0.0e0, 0.0e0));
+      P_phon_mat.push_back((0.0e0, 0.0e0));
    }
 
    for(int ii=0; ii<n_tot; ii++){
       eigen_E.push_back(0.0e0);
-      eta_s_vec.push_back(0.0e0);
-      lambda_s_vec.push_back(0.0e0);
    }
 
    for(int ii=0; ii<(n_el*n_el); ii++){
@@ -134,10 +134,6 @@ void init_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
       rho_phon.push_back((0.0e0, 0.0e0));
    }
 
-   for (int ii=0; ii<n_ke_bath; ii++){
-      w_ke_vec.push_back(0.0e0);
-   }
-
    return;
 }
 //##############################################################################
@@ -150,48 +146,48 @@ void build_rho_matrix(vector < complex<double> >& rho_tot,
    vector<double> auxmat1(n_tot*n_tot, 0.0e0);
 
 //chrarly: creating intial coherent state
-   double theta = 0.001;
-   double dx    = -0.5*sqrt(mass_phon_vec[0]*w_phon_vec[0]*0.5);
+   double theta = 0.001;//0.7853981633974483;
+   double dx    = 0.25*sqrt(mass_phon_vec[0]*w_phon_vec[0]*0.5);
 
-   rho_real[0+0*n_tot] = pow(sin(theta),2);
+   rho_real[1+1*n_tot] = 1.0e0;
 
-   for (int e1=0; e1<n_el; e1++){
-   for (int e2=e1; e2<n_el; e2++){
-      // if ((e1 != e2) && (x0 > 0.0e0)){
-         // for(int pp=0; pp<n_phon; pp++){
-            for(int ii=0; ii<np_levels; ii++){
-            for(int jj=0; jj<np_levels; jj++){
-               int ind1 = ii + e1*np_levels*n_phon;
-               int ind2 = jj + e2*np_levels*n_phon;
-               int ind3 = ind1 + ind2*n_tot;
-               int ind4 = ind2 + ind1*n_tot;
-               double c1 = 0.0e0;
-               double c2 = 0.0e0;
-
-               if (e1==0 && ii==0){
-                  c1 = sin(theta);
-               }
-               if (e2==0 && jj==0){
-                  c2 = sin(theta);
-               }
-
-               if (e1==1){
-                  c1 = cos(theta)*exp(-pow(dx,2)*0.5)*pow(dx,ii)/
-                       sqrt(factorial(ii));
-               }
-               if (e2==1){
-                  c2 = cos(theta)*exp(-pow(dx,2)*0.5)*pow(dx,jj)/
-                       sqrt(factorial(jj));
-               }
-
-               rho_real[ind3] = c1*c2;
-               rho_real[ind4] = c1*c2;
-            }
-            }
-         // }
-      // }
-   }
-   }
+   // for (int e1=0; e1<n_el; e1++){
+   // for (int e2=e1; e2<n_el; e2++){
+   //    // if ((e1 != e2) && (x0 > 0.0e0)){
+   //       // for(int pp=0; pp<n_phon; pp++){
+   //          for(int ii=0; ii<np_levels; ii++){
+   //          for(int jj=0; jj<np_levels; jj++){
+   //             int ind1 = ii + e1*np_levels*n_phon;
+   //             int ind2 = jj + e2*np_levels*n_phon;
+   //             int ind3 = ind1 + ind2*n_tot;
+   //             int ind4 = ind2 + ind1*n_tot;
+   //             double c1 = 0.0e0;
+   //             double c2 = 0.0e0;
+   //
+   //             if (e1==1 && ii==0){
+   //                c1 = cos(theta);
+   //             }
+   //             if (e2==1 && jj==0){
+   //                c2 = cos(theta);
+   //             }
+   //
+   //             if (e1==0){
+   //                c1 = sin(theta)*exp(-pow(dx,2)*0.5)*pow(dx,ii)/
+   //                     sqrt(factorial(ii));
+   //             }
+   //             if (e2==0){
+   //                c2 = sin(theta)*exp(-pow(dx,2)*0.5)*pow(dx,jj)/
+   //                     sqrt(factorial(jj));
+   //             }
+   //
+   //             rho_real[ind3] = c1*c2;
+   //             rho_real[ind4] = c1*c2;
+   //          }
+   //          }
+   //       // }
+   //    // }
+   // }
+   // }
 
    // matmul_blas(rho_real, eigen_coefT, auxmat1, n_tot);
    // matmul_blas(eigen_coef, auxmat1, rho_real, n_tot);
@@ -228,6 +224,8 @@ void build_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
                   vector<double>& Fcoup_mat,
                   vector<double>& mu_elec_mat,
                   vector < complex<double> >& mu_tot,
+                  vector < complex<double> >& X_phon_mat,
+                  vector < complex<double> >& P_phon_mat,
                   vector<double>& el_ener_vec, vector<double>& w_phon_vec,
                   vector<double>& mass_phon_vec, UNINT n_el,
                   UNINT n_phon, UNINT np_levels, UNINT n_tot){
@@ -251,6 +249,11 @@ void build_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
          double Mij = sqrt((kk+1.0)/(2.0*mwj));
          mu_phon_mat[ind2] += Mij;
          mu_phon_mat[ind3] += Mij;
+         X_phon_mat[ind2]   = complex<double> (Mij, 0.0e0);
+         X_phon_mat[ind3]   = complex<double> (Mij, 0.0e0);
+         double Pij = sqrt(mwj*(kk+1.0)/2.0);
+         P_phon_mat[ind2]   = complex<double> (0.0e0, -Pij);
+         P_phon_mat[ind3]   = complex<double> (0.0e0, Pij);
 
          // if(ii == 1){
          //    H0_mat[ind2] = -mass_phon_vec[jj]*pow(w_phon_vec[jj],2)*0.5*Mij;
@@ -278,6 +281,10 @@ void build_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
       H0_mat[ii]    += Hcoup_mat[ii];
       H_tot[ii]      = complex<double> (H0_mat[ii], 0.0e0);
       mu_tot[ii]     = complex<double> (mu_elec_mat[ii]+mu_phon_mat[ii], 0.0e0);
+   }
+
+   for (int ii=0; ii<n_tot; ii++){
+      X_phon_mat[ii+ii*n_tot] = complex<double> (mu_elec_mat[ii+ii*n_tot],0.0e0);
    }
 
    // for (int ii=0; ii<n_tot; ii++){
@@ -313,6 +320,19 @@ void eigenval_elec_calc(vector<double>& mat, vector<double>& eigenval,
    return;
 }
 //##############################################################################
+void init_CL_terms(double& C_term, double& LM_term, double b_temp,
+                   double mass_b, double w_freq, double k0_term){
+
+   double pi      = 3.141592653589793;
+   double temp_Ha = b_temp*8.6173324e-5/27.2113862;
+
+// L is using Δν = ν/100
+   LM_term = 0.5*100*pow(k0_term,2.0)/pow(mass_b,2.0) * pi * 1.0/pow(w_freq,3.0);
+   C_term  = mass_b*LM_term*w_freq * (0.5 + 1.0/(exp(w_freq/temp_Ha)-1.0));
+
+   return;
+}
+//##############################################################################
 void matmul_blas(vector<double>& matA, vector<double>& matB,
                  vector<double>& matC, int ntotal){
 
@@ -336,20 +356,6 @@ double rand_normal(){
 //##############################################################################
 double rand_gaussian(double mean, double stdev){
   return mean + stdev * rand_normal();
-}
-//##############################################################################
-void init_bath(double temp, double bmass, double bfreq, double span, int seed,
-               UNINT n_ke_bath, vector<double>& w_ke_vec){
-   srand(seed);
-
-   double stdev = sqrt(temp/bmass*8.6173324e-5/27.2113862);
-   double ki;
-
-   for(int ii=0; ii<n_ke_bath; ii++){
-      ki         = (0.5 + drand()) * bfreq;
-      w_ke_vec[ii] = ki;
-   }
-   return;
 }
 //##############################################################################
 void init_output(ofstream* outfile){
@@ -401,17 +407,18 @@ void write_output(double mass_bath, double dt, int tt, int print_t, UNINT n_el,
          outfile[5]<<"   "<<jj<<"   "<<tr_rho_ph[jj]<<endl;
       }
 
+// Remember uncommit this part in cuda
 //temporal para caso simple de 1 unioc fonon
-      for(int kk=0; kk<n_el; kk++){
-      for(int jj=0; jj<np_levels; jj++){
-      for(int ii=jj; ii<np_levels; ii++){
-         int ind1 = ii + kk * np_levels;
-         int ind2 = jj + kk * np_levels;
-         int ind3 = ind1 + ind2 * n_tot;
-         outfile[7]<<rho_tot[ind3].real()<<endl;
-      }
-      }
-      }
+      // for(int kk=0; kk<n_el; kk++){
+      // for(int jj=0; jj<np_levels; jj++){
+      // for(int ii=jj; ii<np_levels; ii++){
+      //    int ind1 = ii + kk * np_levels;
+      //    int ind2 = jj + kk * np_levels;
+      //    int ind3 = ind1 + ind2 * n_tot;
+      //    outfile[7]<<rho_tot[ind3].real()<<endl;
+      // }
+      // }
+      // }
 
    }
    return;
@@ -419,8 +426,7 @@ void write_output(double mass_bath, double dt, int tt, int print_t, UNINT n_el,
 //##############################################################################
 void readinput(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
                int& t_steps, int& print_t, double& dt, double& Efield,
-               double& b_temp, double& a_ceed, int& seed, UNINT& n_ke_bath,
-               double& sigma_ke, double& k0_ke_inter,
+               double& b_temp, double& a_ceed, int& seed, double& k0_ke_inter,
                vector<double>& el_ener_vec, vector<double>& w_phon_vec,
                vector<double>& mass_phon_vec){
 
@@ -444,8 +450,6 @@ void readinput(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
     "Delta_t",
     "print_step",
     "bath_temp",
-    "N_ke_bath",
-    "sigma_ke",
     "k0_ke_inter",
     "seed"};
 
@@ -456,7 +460,7 @@ void readinput(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
   while (getline(inputf, str))
   {
     //cout << str << "\n";
-    for(int jj=0; jj<15; jj++)
+    for(int jj=0; jj<11; jj++)
     {
       size_t found = str.find(keys[jj]);
       if (found != string::npos)
@@ -473,10 +477,8 @@ void readinput(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
         else if(jj==6) linestream >> dt;
         else if(jj==7) linestream >> print_t;
         else if(jj==8) linestream >> b_temp;
-        else if(jj==9) linestream >> n_ke_bath;
-        else if(jj==10) linestream >> sigma_ke;
-        else if(jj==11) linestream >> k0_ke_inter;
-        else if(jj==12) linestream >> seed;
+        else if(jj==9) linestream >> k0_ke_inter;
+        else if(jj==10) linestream >> seed;
       }
     }
 
@@ -528,7 +530,9 @@ void readinput(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
   return;
 }
 //##############################################################################
-void readefield(int& efield_flag, vector<double>& efield_vec){
+void readefield(int& efield_flag, vector<double>& efield_vec,
+                vector<double>& w_noise_vec, vector<double>& A_noise_vec,
+                vector<double>& phi_noise_vec, UNINT& n_noise){
    ifstream inputf;
    double val;
    inputf.open("efield.in");
@@ -560,12 +564,49 @@ void readefield(int& efield_flag, vector<double>& efield_vec){
          exit(1); // terminate with error
       }
    }
+
+   if(efield_flag == 4){
+      //efield_vec[0] = w_max
+      //efield_vec[1] = Δw
+      //efield_vec[2] = seed
+      double c0         = 137.0;
+      double pi         = 3.141592653589793;
+      double epsi_0     = 1.0/(4*pi);
+      double w_max      = efield_vec[0];
+      double delta_w    = efield_vec[1];
+      int    nn         = 0;
+      double w_n        = delta_w;
+      double A_n        = 0.0e0;
+      double phi_n      = 0.0e0;
+
+      srand(efield_vec[2]);
+
+      while (w_n < w_max){
+         A_n   = sqrt(delta_w*pow(w_n,3.0) / (3.0*epsi_0*pow(c0,3.0)) ) / pi;
+         phi_n = drand() * 2*pi;
+
+         A_noise_vec.push_back(A_n);
+         w_noise_vec.push_back(w_n);
+         phi_noise_vec.push_back(phi_n);
+
+         nn  += 1;
+         w_n += delta_w;
+      }
+
+      n_noise = nn-1;
+
+      cout <<"Number of noise oscilators"<<nn<<endl;
+   }
+
    return;
 }
 //##############################################################################
 
 void efield_t(int efield_flag, int tt, double dt, double Efield,
-                 vector<double> efield_vec, vector<double>& Efield_t){
+              vector<double> efield_vec, vector<double>& Efield_t,
+              vector<double>& w_noise_vec, vector<double>& A_noise_vec,
+              vector<double>& phi_noise_vec, UNINT n_noise){
+
    double time = dt * tt;
    double timeaux = time + dt/2.0;
    double phase;
@@ -641,89 +682,18 @@ void efield_t(int efield_flag, int tt, double dt, double Efield,
          Efield_t[1] = 0.0e0;
       }
    }
-   return;
-}
-//##############################################################################
-void getting_ke_terms(UNINT n_tot, UNINT n_ke_bath, UNINT& n_ke_inter,
-                      UNINT n_el, UNINT n_phon, UNINT& np_levels,
-                      double mass_bath, vector<int>& ke_index_i,
-                      vector<int>& ke_index_j, vector<int>& ke_index_k,
-                      double sigma_ke, double k0_ke_inter,
-                      vector<double>& eigen_E, vector<double>& w_ke_vec,
-                      vector<double>& ke_delta1_vec,
-                      vector<double>& ke_delta2_vec,
-                      vector<double>& eta_l_vec,
-                      vector<double>& lambda_l_vec,
-                      vector<double>& w_phon_vec,
-                      vector<double>& mass_phon_vec,
-                      vector<double>& Fbath_mat){
-
-   int nat2 = n_tot*n_tot;
-   const double pi = 3.141592653589793;
-   n_ke_inter = 0;
-
-   for (int e1=0; e1<n_el; e1++){
-   for (int e2=0; e2<n_el; e2++){
-   for (int pp=0; pp<n_phon; pp++){
-      for (int ii=0; ii<np_levels; ii++){
-      for (int jj=0; jj<np_levels; jj++){
-         int ind_i = ii + pp * np_levels + e1 * np_levels * n_phon;
-         int ind_j = jj + pp * np_levels + e2 * np_levels * n_phon;
-         double C_e  = 0.0e0;
-         double C_ph = 0.0e0;
-         if(ii == jj){
-            C_e = Fbath_mat[e1, e2*n_el];
-         }
-         if((ii == jj+1) && e1==e2){
-            C_ph = sqrt(0.5*1/(mass_phon_vec[pp]*w_phon_vec[pp]))*sqrt(jj+1);
-         }
-         else if(ii == jj-1 && e1==e2){
-            C_ph = sqrt(0.5*1/(mass_phon_vec[pp]*w_phon_vec[pp]))*sqrt(jj);
-         }
-         for (int kk=0; kk<n_ke_bath; kk++){
-            double aux1, exp1, exp2;
-            double Ea   = eigen_E[ind_i];
-            double Eb   = eigen_E[ind_j];
-            double wj   = w_ke_vec[kk];
-            aux1 = pow(C_e + k0_ke_inter*C_ph, 2.0) * pi / (wj * mass_bath);
-            exp1 = dirac_delta(Ea, Eb, wj, sigma_ke);
-            exp2 = dirac_delta(Ea, Eb, -wj, sigma_ke);
-            bool acceptable;
-            acceptable = (aux1*exp1 > 1.0e-6) || (aux1*exp2 > 1.0e-6);
-            if (acceptable){
-               ke_index_i.push_back(ind_i);
-               ke_index_j.push_back(ind_j);
-               ke_index_k.push_back(kk);
-               ke_delta1_vec.push_back(aux1*exp1);
-               ke_delta2_vec.push_back(aux1*exp2);
-               eta_l_vec.push_back(0.0e0);
-               lambda_l_vec.push_back(0.0e0);
-               n_ke_inter += 1;
-            }
-         }
-
-      }
+   else if(efield_flag == 4){
+      Efield_t[0] = 0.0e0;
+      Efield_t[1] = 0.0e0;
+      for(int ii=0; ii< n_noise; ii++){
+         Efield_t[0] += Efield* A_noise_vec[ii]*sin(w_noise_vec[ii]*time-
+                                                    phi_noise_vec[ii]);
+         Efield_t[1] += Efield*A_noise_vec[ii]*sin(w_noise_vec[ii]*timeaux-
+                                                   phi_noise_vec[ii]);
       }
    }
-   }
-   }
-
-   cout<<n_ke_inter<<endl;
-
    return;
 }
-//##############################################################################
-void creating_ke_bath(UNINT n_ke_bath, vector<double>& w_ke_vec,
-                      vector<double>& ke_N_phon_vec, double b_temp){
-
-   double temp_Ha = b_temp*8.6173324e-5/27.2113862;
-   for (int ii=0; ii<n_ke_bath; ii++){
-      ke_N_phon_vec.push_back(1.0e0 / (exp(w_ke_vec[ii]/temp_Ha)-1.0e0));
-   }
-
-   return;
-}
-
 //##############################################################################
 double dirac_delta(double Ea, double Eb, double wj, double sigma){
 
