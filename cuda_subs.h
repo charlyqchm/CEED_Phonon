@@ -23,7 +23,10 @@ extern cuDoubleComplex  *dev_Htot2;
 extern cuDoubleComplex  *dev_Htot3;
 extern cuDoubleComplex  *dev_mutot;
 extern cuDoubleComplex  *dev_Xmat;
-extern cuDoubleComplex  *dev_Pmat;
+extern cuDoubleComplex  *dev_chib1;
+extern cuDoubleComplex  *dev_chib2;
+extern cuDoubleComplex  *dev_chiphot1;
+extern cuDoubleComplex  *dev_chiphot2;
 extern UNINT             Ncores1;
 extern UNINT             Ncores2;
 const  UNINT             Nthreads = 512;
@@ -32,7 +35,10 @@ void init_cuda(complex<double> *H_tot, complex<double> *mu_tot,
                complex<double> *rho_tot,
                complex<double> *rho_phon,
                complex<double> *X_phon_mat,
-               complex<double> *P_phon_mat,
+               complex<double> *chi_b1,
+               complex<double> *chi_b2,
+               complex<double> *chi_phot1,
+               complex<double> *chi_phot2,
                UNINT n_el, UNINT n_phon, UNINT np_levels, UNINT n_tot);
 
 void free_cuda_memory();
@@ -57,12 +63,15 @@ void include_Hceed_cuda(cuDoubleComplex *dev_Hout, cuDoubleComplex *dev_Hin,
                         cuDoubleComplex *dev_mu, cuDoubleComplex *dev_rhoin,
                         double a_ceed, int n_tot);
 
+void include_noise_dumping(cuDoubleComplex *dev_rho, cuDoubleComplex *dev_drdt,
+                           double CLb_term, double CLp_term, int n_tot);
+
 double get_Qforces_cuda(cuDoubleComplex *dev_rhoin ,double *fb_vec,
                         UNINT n_el, UNINT n_phon, UNINT np_levels, UNINT n_tot);
 
 void runge_kutta_propagator_cuda(double mass_bath, double a_ceed, double dt,
                                  double Efield, double Efieldaux,
-                                 double C_term, double LM_term,
+                                 double CLb_term, double CLp_term,
                                  int tt, UNINT n_el,
                                  UNINT n_phon, UNINT np_levels,
                                  UNINT n_tot);

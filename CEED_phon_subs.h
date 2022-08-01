@@ -44,7 +44,10 @@ void init_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
                  UNINT n_tot, UNINT n_el, UNINT n_phon, UNINT np_levels,
                  vector<double>& Fbath_mat,
                  vector < complex<double> >& X_phon_mat,
-                 vector < complex<double> >& P_phon_mat);
+                 vector < complex<double> >& chi_b1,
+                 vector < complex<double> >& chi_b2,
+                 vector < complex<double> >& chi_phot1,
+                 vector < complex<double> >& chi_phot2);
 
 void build_rho_matrix(vector < complex<double> >& rho_tot,
                       vector<double>& eigen_coef, vector<double>& eigen_coefT,
@@ -61,7 +64,6 @@ void build_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
                   vector<double>& mu_elec_mat,
                   vector < complex<double> >& mu_tot,
                   vector < complex<double> >& X_phon_mat,
-                  vector < complex<double> >& P_phon_mat,
                   vector<double>& el_ener_vec, vector<double>& w_phon_vec,
                   vector<double>& mass_phon_vec, UNINT n_el,
                   UNINT n_phon, UNINT np_levels, UNINT n_tot);
@@ -69,8 +71,19 @@ void build_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
 void eigenval_elec_calc(vector<double>& mat, vector<double>& eigenval,
                         vector<double>& coef, UNINT ntotal);
 
-void init_CL_terms(double& C_term, double& LM_term, double b_temp,
-                   double mass_b, double w_freq, double k0_term);
+void init_chi_terms(double& CL_bath, double& CL_phot,
+                   vector< complex<double> >& X_phon_mat,
+                   vector< complex<double> >& mu_tot,
+                   vector< complex<double> >& chi_b1,
+                   vector< complex<double> >& chi_b2,
+                   vector< complex<double> >& chi_phot1,
+                   vector< complex<double> >& chi_phot2,
+                   vector<double>& coef,
+                   vector<double>& coefT,
+                   vector<double>& eigen_E,
+                   double w_max, double w_min,
+                   double b_temp, double mass_b,
+                   double k0_term, UNINT n_tot);
 
 void matmul_blas(vector<double>& matA, vector<double>& matB,
                  vector<double>& matC, int ntotal);
@@ -89,6 +102,7 @@ void readinput(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
                int& t_steps, int& print_t, double& dt,
                double& Efield, double& b_temp,
                double& a_ceed, int& seed, double& k0_ke_inter,
+               double& w_max, double& w_min,
                vector<double>& el_ener_vec,vector<double>& w_phon_vec,
                vector<double>& mass_phon_vec);
 

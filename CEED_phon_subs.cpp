@@ -102,7 +102,10 @@ void init_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
                  UNINT n_tot, UNINT n_el, UNINT n_phon, UNINT np_levels,
                  vector<double>& Fbath_mat,
                  vector < complex<double> >& X_phon_mat,
-                 vector < complex<double> >& P_phon_mat){
+                 vector < complex<double> >& chi_b1,
+                 vector < complex<double> >& chi_b2,
+                 vector < complex<double> >& chi_phot1,
+                 vector < complex<double> >& chi_phot2){
 
    for(int ii=0; ii<(n_tot*n_tot); ii++){
       H0_mat.push_back(0.0e0);
@@ -115,7 +118,10 @@ void init_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
       H_tot.push_back((0.0e0, 0.0e0));
       rho_tot.push_back((0.0e0, 0.0e0));
       X_phon_mat.push_back((0.0e0, 0.0e0));
-      P_phon_mat.push_back((0.0e0, 0.0e0));
+      chi_b1.push_back((0.0e0, 0.0e0));
+      chi_b2.push_back((0.0e0, 0.0e0));
+      chi_phot1.push_back((0.0e0, 0.0e0));
+      chi_phot2.push_back((0.0e0, 0.0e0));
    }
 
    for(int ii=0; ii<n_tot; ii++){
@@ -146,48 +152,53 @@ void build_rho_matrix(vector < complex<double> >& rho_tot,
    vector<double> auxmat1(n_tot*n_tot, 0.0e0);
 
 //chrarly: creating intial coherent state
-   double theta = 0.001;//0.7853981633974483;
+   double theta = 0.001; //0.7853981633974483;  //0.001
    double dx    = 0.25*sqrt(mass_phon_vec[0]*w_phon_vec[0]*0.5);
 
-   rho_real[1+1*n_tot] = 1.0e0;
+   // rho_real[20+20*n_tot] = 1.0e0;
 
-   // for (int e1=0; e1<n_el; e1++){
-   // for (int e2=e1; e2<n_el; e2++){
-   //    // if ((e1 != e2) && (x0 > 0.0e0)){
-   //       // for(int pp=0; pp<n_phon; pp++){
-   //          for(int ii=0; ii<np_levels; ii++){
-   //          for(int jj=0; jj<np_levels; jj++){
-   //             int ind1 = ii + e1*np_levels*n_phon;
-   //             int ind2 = jj + e2*np_levels*n_phon;
-   //             int ind3 = ind1 + ind2*n_tot;
-   //             int ind4 = ind2 + ind1*n_tot;
-   //             double c1 = 0.0e0;
-   //             double c2 = 0.0e0;
-   //
-   //             if (e1==1 && ii==0){
-   //                c1 = cos(theta);
-   //             }
-   //             if (e2==1 && jj==0){
-   //                c2 = cos(theta);
-   //             }
-   //
-   //             if (e1==0){
-   //                c1 = sin(theta)*exp(-pow(dx,2)*0.5)*pow(dx,ii)/
-   //                     sqrt(factorial(ii));
-   //             }
-   //             if (e2==0){
-   //                c2 = sin(theta)*exp(-pow(dx,2)*0.5)*pow(dx,jj)/
-   //                     sqrt(factorial(jj));
-   //             }
-   //
-   //             rho_real[ind3] = c1*c2;
-   //             rho_real[ind4] = c1*c2;
-   //          }
-   //          }
-   //       // }
-   //    // }
-   // }
-   // }
+   // rho_real[0+0*n_tot] = sin(theta)*sin(theta);
+   // rho_real[1+1*n_tot] = cos(theta)*cos(theta);
+   // rho_real[0+1*n_tot] = cos(theta)*sin(theta);
+   // rho_real[1+0*n_tot] = cos(theta)*sin(theta);
+
+   for (int e1=0; e1<n_el; e1++){
+   for (int e2=e1; e2<n_el; e2++){
+      // if ((e1 != e2) && (x0 > 0.0e0)){
+         // for(int pp=0; pp<n_phon; pp++){
+            for(int ii=0; ii<np_levels; ii++){
+            for(int jj=0; jj<np_levels; jj++){
+               int ind1 = ii + e1*np_levels*n_phon;
+               int ind2 = jj + e2*np_levels*n_phon;
+               int ind3 = ind1 + ind2*n_tot;
+               int ind4 = ind2 + ind1*n_tot;
+               double c1 = 0.0e0;
+               double c2 = 0.0e0;
+
+               if (e1==1 && ii==0){
+                  c1 = cos(theta);
+               }
+               if (e2==1 && jj==0){
+                  c2 = cos(theta);
+               }
+
+               if (e1==0){
+                  c1 = sin(theta)/sqrt(20); //*exp(-pow(dx,2)*0.5)*pow(dx,ii)/
+                       // sqrt(factorial(ii));
+               }
+               if (e2==0){
+                  c2 = sin(theta)/sqrt(20); //*exp(-pow(dx,2)*0.5)*pow(dx,jj)/
+                       // sqrt(factorial(jj));
+               }
+
+               rho_real[ind3] = c1*c2;
+               rho_real[ind4] = c1*c2;
+            }
+            }
+         // }
+      // }
+   }
+   }
 
    // matmul_blas(rho_real, eigen_coefT, auxmat1, n_tot);
    // matmul_blas(eigen_coef, auxmat1, rho_real, n_tot);
@@ -225,7 +236,6 @@ void build_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
                   vector<double>& mu_elec_mat,
                   vector < complex<double> >& mu_tot,
                   vector < complex<double> >& X_phon_mat,
-                  vector < complex<double> >& P_phon_mat,
                   vector<double>& el_ener_vec, vector<double>& w_phon_vec,
                   vector<double>& mass_phon_vec, UNINT n_el,
                   UNINT n_phon, UNINT np_levels, UNINT n_tot){
@@ -251,9 +261,9 @@ void build_matrix(vector < complex<double> >& H_tot, vector<double>& H0_mat,
          mu_phon_mat[ind3] += Mij;
          X_phon_mat[ind2]   = complex<double> (Mij, 0.0e0);
          X_phon_mat[ind3]   = complex<double> (Mij, 0.0e0);
-         double Pij = sqrt(mwj*(kk+1.0)/2.0);
-         P_phon_mat[ind2]   = complex<double> (0.0e0, -Pij);
-         P_phon_mat[ind3]   = complex<double> (0.0e0, Pij);
+         // double Pij = sqrt(mwj*(kk+1.0)/2.0);
+         // P_phon_mat[ind2]   = complex<double> (0.0e0, -Pij);
+         // P_phon_mat[ind3]   = complex<double> (0.0e0, Pij);
 
          // if(ii == 1){
          //    H0_mat[ind2] = -mass_phon_vec[jj]*pow(w_phon_vec[jj],2)*0.5*Mij;
@@ -320,15 +330,116 @@ void eigenval_elec_calc(vector<double>& mat, vector<double>& eigenval,
    return;
 }
 //##############################################################################
-void init_CL_terms(double& C_term, double& LM_term, double b_temp,
-                   double mass_b, double w_freq, double k0_term){
+void init_chi_terms(double& CL_bath, double& CL_phot,
+                   vector< complex<double> >& X_phon_mat,
+                   vector< complex<double> >& mu_tot,
+                   vector< complex<double> >& chi_b1,
+                   vector< complex<double> >& chi_b2,
+                   vector< complex<double> >& chi_phot1,
+                   vector< complex<double> >& chi_phot2,
+                   vector<double>& coef,
+                   vector<double>& coefT,
+                   vector<double>& eigen_E,
+                   double w_max, double w_min,
+                   double b_temp, double mass_b,
+                   double k0_term, UNINT n_tot){
 
    double pi      = 3.141592653589793;
    double temp_Ha = b_temp*8.6173324e-5/27.2113862;
+   double dw      = w_max - w_min;
+   vector<double> X1_aux(n_tot*n_tot);
+   vector<double> X2_aux(n_tot*n_tot);
+   vector<double> auxmat1(n_tot*n_tot);
 
-// L is using Δν = ν/100
-   LM_term = 0.5*100*pow(k0_term,2.0)/pow(mass_b,2.0) * pi * 1.0/pow(w_freq,3.0);
-   C_term  = mass_b*LM_term*w_freq * (0.5 + 1.0/(exp(w_freq/temp_Ha)-1.0));
+   CL_bath = pi*pow(k0_term,2.0)/(4*mass_b*dw);
+   CL_phot = 1.0/(3.0 * pow(137.0,3.0));
+
+   //Preparing phonon bath///////////////////
+   for(int ii=0; ii < n_tot*n_tot; ii++){
+      X1_aux[ii] = X_phon_mat[ii].real();
+   }
+
+   matmul_blas(X1_aux, coef, auxmat1, n_tot);
+   matmul_blas(coefT, auxmat1, X1_aux, n_tot);
+
+   for(int jj=0; jj < n_tot; jj++){
+   for(int ii=0; ii < n_tot; ii++){
+      double wij = eigen_E[ii] - eigen_E[jj];
+      double Xij = X1_aux[ii+jj * n_tot];
+      bool null_value = (ii==jj) || ((abs(wij)>w_max) || (abs(wij)<w_min));
+
+      if(null_value){
+         X1_aux[ii+jj * n_tot] = 0.0e0;
+         X2_aux[ii+jj * n_tot] = 0.0e0;
+      }
+      else{
+         double Nij = 1.0 / (exp(abs(wij)/temp_Ha)-1.0);
+         X1_aux[ii+jj * n_tot] = (2.0*Nij+1.0) * Xij/abs(wij);
+         X2_aux[ii+jj * n_tot] = Xij/wij;
+      }
+
+
+   }
+   }
+
+   matmul_blas(X1_aux, coefT, auxmat1, n_tot);
+   matmul_blas(coef, auxmat1, X1_aux, n_tot);
+
+   matmul_blas(X2_aux, coefT, auxmat1, n_tot);
+   matmul_blas(coef, auxmat1, X2_aux, n_tot);
+
+   for(int jj=0; jj < n_tot; jj++){
+   for(int ii=0; ii < n_tot; ii++){
+      chi_b1[ii+jj * n_tot] = complex<double> (0.0e0, X1_aux[ii+jj * n_tot]);
+      chi_b2[ii+jj * n_tot] = complex<double> (0.0e0, X2_aux[ii+jj * n_tot]);
+
+   }
+   }
+
+//Preparing photon bath///////////////////////
+
+   for(int ii=0; ii < n_tot*n_tot; ii++){
+      X1_aux[ii] = mu_tot[ii].real();
+   }
+
+   matmul_blas(X1_aux, coef, auxmat1, n_tot);
+   matmul_blas(coefT, auxmat1, X1_aux, n_tot);
+
+   for(int jj=0; jj < n_tot; jj++){
+   for(int ii=0; ii < n_tot; ii++){
+      double wij = eigen_E[ii] - eigen_E[jj];
+      double xij = X1_aux[ii+jj * n_tot];
+      bool null_value = (ii==jj);
+
+      if(null_value){
+         X1_aux[ii+jj * n_tot] = 0.0e0;
+         X2_aux[ii+jj * n_tot] = 0.0e0;
+      }
+      else{
+         double Nij = 1.0 / (exp(abs(wij)/temp_Ha)-1.0);
+         X1_aux[ii+jj * n_tot] = (1.0) * xij * pow(abs(wij),3.0);
+         // X1_aux[ii+jj * n_tot] = (2.0*Nij+1.0) * xij * pow(abs(wij),3.0);
+         X2_aux[ii+jj * n_tot] = xij*pow(wij,3.0);
+      }
+
+
+   }
+   }
+
+   matmul_blas(X1_aux, coefT, auxmat1, n_tot);
+   matmul_blas(coef, auxmat1, X1_aux, n_tot);
+
+   matmul_blas(X2_aux, coefT, auxmat1, n_tot);
+   matmul_blas(coef, auxmat1, X2_aux, n_tot);
+
+   for(int jj=0; jj < n_tot; jj++){
+   for(int ii=0; ii < n_tot; ii++){
+      chi_phot1[ii+jj * n_tot] = complex<double> (0.0e0, X1_aux[ii+jj * n_tot]);
+      chi_phot2[ii+jj * n_tot] = complex<double> (0.0e0, X2_aux[ii+jj * n_tot]);
+      // cout<<X1_aux[ii+jj * n_tot]<<"  "<<X2_aux[ii+jj * n_tot]<<endl;
+
+   }
+   }
 
    return;
 }
@@ -427,6 +538,7 @@ void write_output(double mass_bath, double dt, int tt, int print_t, UNINT n_el,
 void readinput(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
                int& t_steps, int& print_t, double& dt, double& Efield,
                double& b_temp, double& a_ceed, int& seed, double& k0_ke_inter,
+               double& w_max, double& w_min,
                vector<double>& el_ener_vec, vector<double>& w_phon_vec,
                vector<double>& mass_phon_vec){
 
@@ -451,6 +563,8 @@ void readinput(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
     "print_step",
     "bath_temp",
     "k0_ke_inter",
+    "w_min",
+    "w_max",
     "seed"};
 
   string veckeys[] = {"Elec_levels",
@@ -460,7 +574,7 @@ void readinput(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
   while (getline(inputf, str))
   {
     //cout << str << "\n";
-    for(int jj=0; jj<11; jj++)
+    for(int jj=0; jj<13; jj++)
     {
       size_t found = str.find(keys[jj]);
       if (found != string::npos)
@@ -478,13 +592,15 @@ void readinput(UNINT& n_el, UNINT& n_phon, UNINT& np_levels, UNINT& n_tot,
         else if(jj==7) linestream >> print_t;
         else if(jj==8) linestream >> b_temp;
         else if(jj==9) linestream >> k0_ke_inter;
-        else if(jj==10) linestream >> seed;
+        else if(jj==10) linestream >> w_min;
+        else if(jj==11) linestream >> w_max;
+        else if(jj==12) linestream >> seed;
       }
     }
 
   }
 
-  n_tot = n_el * n_phon * np_levels;
+  n_tot  = n_el * n_phon * np_levels;
   a_ceed = a_ceed * k_ceed;
 
   inputf.close();

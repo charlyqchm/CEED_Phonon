@@ -10,11 +10,13 @@ cuDoubleComplex  *dev_Htot2;
 cuDoubleComplex  *dev_Htot3;
 cuDoubleComplex  *dev_mutot;
 cuDoubleComplex  *dev_Xmat;
-cuDoubleComplex  *dev_Pmat;
+cuDoubleComplex  *dev_chib1;
+cuDoubleComplex  *dev_chib2;
+cuDoubleComplex  *dev_chiphot1;
+cuDoubleComplex  *dev_chiphot2;
+
 UNINT             Ncores1;
 UNINT             Ncores2;
-UNINT             Ncores3;
-
 //##############################################################################
 // This function build the Hamiltonian without CEED:
 // H_in  = H_e + H_phon + H_e-phon - This matrix is the same always.
@@ -85,7 +87,10 @@ void init_cuda(complex<double> *H_tot, complex<double> *mu_tot,
                complex<double> *rho_tot,
                complex<double> *rho_phon,
                complex<double> *X_phon_mat,
-               complex<double> *P_phon_mat,
+               complex<double> *chi_b1,
+               complex<double> *chi_b2,
+               complex<double> *chi_phot1,
+               complex<double> *chi_phot2,
                UNINT n_el, UNINT n_phon, UNINT np_levels, UNINT n_tot){
 
    double gaux = (double) (n_tot*n_tot);
@@ -104,7 +109,10 @@ void init_cuda(complex<double> *H_tot, complex<double> *mu_tot,
    cudaMalloc((void**) &dev_rhoaux , n_tot*n_tot*sizeof(cuDoubleComplex));
    cudaMalloc((void**) &dev_Drho   , n_tot*n_tot*sizeof(cuDoubleComplex));
    cudaMalloc((void**) &dev_Xmat   , n_tot*n_tot*sizeof(cuDoubleComplex));
-   cudaMalloc((void**) &dev_Pmat   , n_tot*n_tot*sizeof(cuDoubleComplex));
+   cudaMalloc((void**) &dev_chib1  , n_tot*n_tot*sizeof(cuDoubleComplex));
+   cudaMalloc((void**) &dev_chib2  , n_tot*n_tot*sizeof(cuDoubleComplex));
+   cudaMalloc((void**) &dev_chiphot1, n_tot*n_tot*sizeof(cuDoubleComplex));
+   cudaMalloc((void**) &dev_chiphot2, n_tot*n_tot*sizeof(cuDoubleComplex));
    cudaMalloc((void**) &dev_rhophon, dimaux*sizeof(cuDoubleComplex));
 
    cudaMemcpy(dev_Htot1, H_tot, n_tot*n_tot*sizeof(cuDoubleComplex),
@@ -117,7 +125,13 @@ void init_cuda(complex<double> *H_tot, complex<double> *mu_tot,
               cudaMemcpyHostToDevice);
    cudaMemcpy(dev_Xmat, X_phon_mat, n_tot*n_tot*sizeof(cuDoubleComplex),
               cudaMemcpyHostToDevice);
-   cudaMemcpy(dev_Pmat, P_phon_mat, n_tot*n_tot*sizeof(cuDoubleComplex),
+   cudaMemcpy(dev_chib1, chi_b1, n_tot*n_tot*sizeof(cuDoubleComplex),
+              cudaMemcpyHostToDevice);
+   cudaMemcpy(dev_chib2, chi_b2, n_tot*n_tot*sizeof(cuDoubleComplex),
+              cudaMemcpyHostToDevice);
+   cudaMemcpy(dev_chiphot1, chi_phot1, n_tot*n_tot*sizeof(cuDoubleComplex),
+              cudaMemcpyHostToDevice);
+   cudaMemcpy(dev_chiphot2, chi_phot2, n_tot*n_tot*sizeof(cuDoubleComplex),
               cudaMemcpyHostToDevice);
 
    return;
@@ -135,7 +149,10 @@ void free_cuda_memory(){
    cudaFree(dev_Drho);
    cudaFree(dev_rhophon);
    cudaFree(dev_Xmat);
-   cudaFree(dev_Pmat);
+   cudaFree(dev_chib1);
+   cudaFree(dev_chib2);
+   cudaFree(dev_chiphot1);
+   cudaFree(dev_chiphot2);
 
    return;
 }
@@ -277,42 +294,63 @@ void include_Hceed_cuda(cuDoubleComplex *dev_Hout, cuDoubleComplex *dev_Hin,
 }
 //##############################################################################
 void include_noise_dumping(cuDoubleComplex *dev_rho, cuDoubleComplex *dev_drdt,
-                           double LM_term, double C_term, int n_tot){
+                           double CLb_term, double CLp_term, int n_tot){
 
    int dim2 = n_tot*n_tot;
-   cuDoubleComplex *dev_aux1, *dev_auxC, *dev_auxL;
+   cuDoubleComplex *dev_aux1, *dev_aux2, *dev_auxC1, *dev_auxC2;
    const cuDoubleComplex alf1   = make_cuDoubleComplex(1.0,0.0);
    const cuDoubleComplex alf2   = make_cuDoubleComplex(0.5,0.0);
-   const cuDoubleComplex alf_C  = make_cuDoubleComplex(-C_term, 0.00);
-   const cuDoubleComplex alf_L  = make_cuDoubleComplex(0.00, -LM_term);
 
    cudaMalloc((void**) &dev_aux1, dim2 * sizeof(cuDoubleComplex));
-   cudaMalloc((void**) &dev_auxC, dim2 * sizeof(cuDoubleComplex));
-   cudaMalloc((void**) &dev_auxL, dim2 * sizeof(cuDoubleComplex));
+   cudaMalloc((void**) &dev_aux2, dim2 * sizeof(cuDoubleComplex));
+   cudaMalloc((void**) &dev_auxC1, dim2 * sizeof(cuDoubleComplex));
+   cudaMalloc((void**) &dev_auxC2, dim2 * sizeof(cuDoubleComplex));
 
-//Calculating -C/\hbar^2 [X,[X,\rho]]
-   commute_cuda(dev_Xmat, dev_rho, dev_aux1, n_tot, alf1);
-   commute_cuda(dev_Xmat, dev_aux1, dev_auxC, n_tot, alf_C);
 
-//Calculating -i L/ (\hbar M) [X, 0.5 {P, \rho}]
-   anticommute_cuda(dev_Pmat, dev_rho, dev_aux1, n_tot, alf2);
-   commute_cuda(dev_Xmat, dev_aux1, dev_auxL, n_tot, alf_L);
+//Calculating phonon bath terms//////////
+   const cuDoubleComplex alf_Cb1  = make_cuDoubleComplex(0.0e0, CLb_term);
+   const cuDoubleComplex alf_Cb2  = make_cuDoubleComplex(0.0e0, -CLb_term);
+
+//Calculating C1 [chi1,rho]
+   commute_cuda(dev_chib1, dev_rho, dev_auxC1, n_tot, alf_Cb1);
+
+//Calculating C2 {chi2, rho}
+   anticommute_cuda(dev_chib2, dev_rho, dev_auxC2, n_tot, alf_Cb2);
 
 //Adding C and L term to d\rho/dt
-   matadd_cublas(dev_drdt, dev_auxC, dev_aux1, n_tot, alf1, alf1);
-   matadd_cublas(dev_aux1, dev_auxL, dev_drdt, n_tot, alf1, alf1);
+   matadd_cublas(dev_auxC1, dev_auxC2, dev_aux1, n_tot, alf1, alf1);
+   commute_cuda(dev_Xmat, dev_aux1, dev_aux2, n_tot, alf1);
+
+   matadd_cublas(dev_drdt, dev_aux2, dev_drdt, n_tot, alf1, alf1);
+
+//Calculating photon bath terms////////////
+   const cuDoubleComplex alf_Cp1  = make_cuDoubleComplex(0.0e0, CLp_term);
+   const cuDoubleComplex alf_Cp2  = make_cuDoubleComplex(0.0e0, -CLp_term);
+
+//Calculating C1 [chi1,rho]
+   commute_cuda(dev_chiphot1, dev_rho, dev_auxC1, n_tot, alf_Cp1);
+
+//Calculating C2 {chi2, rho}
+   anticommute_cuda(dev_chiphot2, dev_rho, dev_auxC2, n_tot, alf_Cp2);
+
+//Adding C and L term to d\rho/dt
+   matadd_cublas(dev_auxC1, dev_auxC2, dev_aux1, n_tot, alf1, alf1);
+   commute_cuda(dev_mutot, dev_aux1, dev_aux2, n_tot, alf1);
+
+   matadd_cublas(dev_drdt, dev_aux2, dev_drdt, n_tot, alf1, alf1);
+
 
    cudaFree(dev_aux1);
-   cudaFree(dev_auxL);
-   cudaFree(dev_auxC);
+   cudaFree(dev_aux2);
+   cudaFree(dev_auxC1);
+   cudaFree(dev_auxC2);
 
    return;
 }
-
 //##############################################################################
 void runge_kutta_propagator_cuda(double mass_bath, double a_ceed, double dt,
                                  double Efield, double Efieldaux,
-                                 double C_term, double LM_term,
+                                 double CLb_term, double CLp_term,
                                  int tt, UNINT n_el,
                                  UNINT n_phon, UNINT np_levels,
                                  UNINT n_tot){
@@ -321,9 +359,6 @@ void runge_kutta_propagator_cuda(double mass_bath, double a_ceed, double dt,
    const cuDoubleComplex alf2 = make_cuDoubleComplex(dt, 0.0e0);
    const cuDoubleComplex alf3 = make_cuDoubleComplex(1.0e0, 0.0e0);
    const cuDoubleComplex alf4 = make_cuDoubleComplex(0.0e0, -1.0e0);
-   //double time = dt * tt;
-
-   //Efield_t = Efield * exp(-pow(((time-10.0)/0.2),2.0));
 
    //Building the new Hamiltonian at time = t ----------------------------------
    update_H_tot<<<Ncores1, Nthreads>>>(dev_Htot2, dev_Htot1, dev_mutot,
@@ -335,13 +370,11 @@ void runge_kutta_propagator_cuda(double mass_bath, double a_ceed, double dt,
 
    //Calculating rho(t+dt/2) using LvN------------------------------------------
    commute_cuda(dev_Htot3, dev_rhotot, dev_Drho, n_tot, alf4); // -i[H,\rho]
-   // include_noise_dumping(dev_rhotot, dev_Drho, LM_term, C_term, n_tot);
+   // include_noise_dumping(dev_rhotot, dev_Drho, CLb_term, CLp_term, n_tot);
 
    matadd_cublas(dev_rhotot, dev_Drho, dev_rhoaux, n_tot, alf3, alf1);
    //---------------------------------------------------------------------------
    //Hencefort we repeat everything to obtain everything in t + dt -------------
-
-   //Efield_t = Efield * exp(-pow(((time+dth-10.0)/0.2),2.0));
 
    update_H_tot<<<Ncores1, Nthreads>>>(dev_Htot2, dev_Htot1, dev_mutot,
                                        Efieldaux, n_el, n_phon, np_levels,
@@ -351,7 +384,7 @@ void runge_kutta_propagator_cuda(double mass_bath, double a_ceed, double dt,
                       n_tot);
 
    commute_cuda(dev_Htot3, dev_rhoaux, dev_Drho, n_tot, alf4);
-   // include_noise_dumping(dev_rhoaux, dev_Drho, LM_term, C_term, n_tot);
+   // include_noise_dumping(dev_rhoaux, dev_Drho, CLb_term, CLp_term, n_tot);
 
    matadd_cublas(dev_rhotot, dev_Drho, dev_rhonew, n_tot, alf3, alf2);
 

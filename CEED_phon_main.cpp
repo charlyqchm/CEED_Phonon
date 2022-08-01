@@ -19,8 +19,10 @@ int main(){
    double                     Efield;
    double                     b_temp;
    double                     mass_bath;
-   double                     C_term = 0.0e0;
-   double                     LM_term = 0.0e0;
+   double                     CL_phot = 0.0e0;
+   double                     CL_bath = 0.0e0;
+   double                     w_max;
+   double                     w_min;
    vector<double>             el_ener_vec;
    vector<double>             w_phon_vec;
    vector<double>             mass_phon_vec;
@@ -44,27 +46,30 @@ int main(){
    vector < complex<double> > rho_phon;
    vector < complex<double> > rho_tot;
    vector < complex<double> > X_phon_mat;
-   vector < complex<double> > P_phon_mat;
+   vector < complex<double> > chi_b1;
+   vector < complex<double> > chi_b2;
+   vector < complex<double> > chi_phot1;
+   vector < complex<double> > chi_phot2;
 
    ofstream outfile[8], output_test;
 
    readinput(n_el, n_phon, np_levels, n_tot, t_steps, print_t, dt, Efield,
-             b_temp, a_ceed, seed, k0_ke_inter, el_ener_vec, w_phon_vec,
-             mass_phon_vec);
+             b_temp, a_ceed, seed, k0_ke_inter, w_max, w_min, el_ener_vec,
+             w_phon_vec, mass_phon_vec);
 //Dirty thing:
    mass_bath = mass_phon_vec[0];
 
    init_matrix(H_tot, H0_mat, Hcoup_mat, Fcoup_mat, mu_elec_mat, mu_phon_mat,
                mu_tot, Efield_t, eigen_E, eigen_coef, eigen_coefT, rho_phon,
                rho_tot, n_tot, n_el, n_phon, np_levels,
-               Fbath_mat, X_phon_mat, P_phon_mat);
+               Fbath_mat, X_phon_mat, chi_b1, chi_b2, chi_phot1, chi_phot2);
 
    read_matrix_inputs(n_el, n_phon, np_levels, n_tot, Fcoup_mat, mu_elec_mat,
                       Fbath_mat, w_phon_vec, mass_phon_vec);
    readefield(efield_flag, efield_vec, w_noise_vec, A_noise_vec,
               phi_noise_vec, n_noise);
    build_matrix(H_tot, H0_mat, Hcoup_mat, mu_phon_mat, Fcoup_mat,
-                mu_elec_mat, mu_tot, X_phon_mat, P_phon_mat, el_ener_vec,
+                mu_elec_mat, mu_tot, X_phon_mat, el_ener_vec,
                 w_phon_vec, mass_phon_vec, n_el, n_phon, np_levels, n_tot);
 
    eigenval_elec_calc(H0_mat, eigen_E, eigen_coef, n_tot);
@@ -76,8 +81,9 @@ int main(){
    }
 
 
-   init_CL_terms(C_term, LM_term, b_temp, mass_bath, w_phon_vec[0],
-                 k0_ke_inter);
+   init_chi_terms(CL_bath, CL_phot, X_phon_mat, mu_tot, chi_b1, chi_b2,
+                  chi_phot1, chi_phot2, eigen_coef, eigen_coefT, eigen_E,
+                  w_max, w_min, b_temp, mass_bath, k0_ke_inter, n_tot);
 
    // vector<double> auxmat1(n_tot*n_tot, 0.0e0);
    // matmul_blas(mu_aux, eigen_coef, auxmat1, n_tot);
@@ -100,19 +106,20 @@ int main(){
       // output_test<<ii<<"  "<<jj<<"  "<<H_tot[ii+jj*n_tot].real()<<endl;
    // }
    // }
-   output_test.close();
+   // output_test.close();
 //charly: we recover the diagonal element of H in eigen_E
 
-   for(int ii=0; ii < n_tot; ii++){
-      eigen_E[ii] = H0_mat[ii+ii*n_tot];
-   }
+   // for(int ii=0; ii < n_tot; ii++){
+   //    eigen_E[ii] = H0_mat[ii+ii*n_tot];
+   // }
 
    build_rho_matrix(rho_tot, eigen_coef, eigen_coefT, mass_phon_vec, w_phon_vec,
                     n_tot, n_el, n_phon, np_levels);
 
 
    init_cuda(& *H_tot.begin(), & *mu_tot.begin(), & *rho_tot.begin(),
-             & *rho_phon.begin(), & *X_phon_mat.begin(), & *P_phon_mat.begin(),
+             & *rho_phon.begin(), & *X_phon_mat.begin(), & *chi_b1.begin(),
+             & *chi_b2.begin(), & *chi_phot1.begin(), & *chi_phot2.begin(),
              n_el, n_phon, np_levels, n_tot);
 
    init_output(outfile);
@@ -120,28 +127,31 @@ int main(){
                 rho_tot, outfile);
 
    double k_ceed_aux = a_ceed;
-   double L_aux = 0.0e0;
-   double C_aux = 0.0e0;
+   double CLb_aux = 0.0e0;
+   double CLp_aux = 0.0e0;
 //Here the time propagation beguin:---------------------------------------------
    for(int tt=1; tt<= t_steps; tt++){
 
-      a_ceed = k_ceed_aux;
-
-      // if (tt>40000){
-      //    a_ceed = k_ceed_aux;
-      //    L_aux  = 0.0e0;
-      //    C_aux  = 0.0e0;
+      // if (dt*tt<1000 || dt*tt>20000){
+         // CLb_aux = 0.0e0;
       // }
       // else{
-      //    a_ceed = 0.0e0;
-      //    L_aux  = LM_term;
-      //    C_aux  = C_term;
+         // CLb_aux = CL_bath;
+      // }
+      //
+      // if (dt*tt>20000){
+         a_ceed = k_ceed_aux;
+         // CLp_aux = 1.0e7*CL_phot;
+      // }
+      // else{
+         // CLp_aux = 0.0e0;
+         // a_ceed = 0.0e0;
       // }
 
       efield_t(efield_flag, tt, dt, Efield, efield_vec, Efield_t,
                w_noise_vec, A_noise_vec, phi_noise_vec, n_noise);
       runge_kutta_propagator_cuda(mass_bath, a_ceed, dt, Efield_t[0],
-                                  Efield_t[1], C_aux, L_aux, tt, n_el,
+                                  Efield_t[1], CLb_aux, CLp_aux, tt, n_el,
                                   n_phon, np_levels, n_tot);
 
       write_output(mass_bath, dt, tt, print_t, n_el, n_phon, np_levels, n_tot,
@@ -154,7 +164,7 @@ int main(){
    // commute_cuda(dev_Htot1, dev_rhotot, dev_rhonew, n_tot);
 
    // calcrhophon(dev_rhotot, n_el, n_phon, np_levels, n_tot);
-   // getingmat(& *H_tot.begin(), dev_Htot2, n_tot);
+   // getingmat(& *mu_tot.begin(), dev_mutot, n_tot);
 
    // double aux1_real = get_trace_cuda(dev_rhophon, np_levels*n_phon);
    // cout << aux1_real<<endl;
@@ -162,7 +172,7 @@ int main(){
    // output_test.open("file.out");
    // for(int jj=0; jj<n_tot; jj++){
    //    for(int ii=0; ii<n_tot; ii++){
-   //       output_test<<ii<<"  "<<jj<<"  "<<mu_tot[ii+jj*n_tot]<<endl;
+   //       output_test<<ii<<"  "<<jj<<"  "<<mu_tot[ii+jj*n_tot].real()<<endl;
    //    }
    // }
 
